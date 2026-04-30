@@ -7,12 +7,22 @@ export interface CountryAccess {
   score: number;
 }
 
-export interface FoodSpot {
+export interface MenuItem {
   name: string;
   desc: string;
+  price: string;
+}
+
+export interface FoodSpot {
+  id: string;
+  name: string;
+  desc: string;
+  funFact: string;
+  submittedBy: string;
   map: string;
   type: string;
-  price: string;
+  priceLevel: 1 | 2 | 3 | 4;
+  menu: MenuItem[];
 }
 
 export interface Friction {
@@ -43,10 +53,13 @@ export interface ItineraryDay {
   desc: string;
 }
 
+export type ItineraryStyle = 'classic' | 'adventure' | 'relaxed';
+
 export interface TravelPlan {
   flights: Flight;
   hotels: Hotel[];
   itinerary: ItineraryDay[];
+  itineraryVariants?: Record<ItineraryStyle, ItineraryDay[]>;
 }
 
 export interface Destination {

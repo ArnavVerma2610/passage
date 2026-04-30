@@ -62,13 +62,44 @@ const FLAGS: Record<string, (w: number, h: number) => React.ReactElement> = {
   ),
 };
 
+function emojiFlag(code: string): string {
+  if (!/^[A-Z]{2}$/.test(code)) return '';
+  return String.fromCodePoint(
+    ...code.split('').map(c => 127397 + c.charCodeAt(0))
+  );
+}
+
 export default function Flag({ code, size = 32 }: FlagProps) {
   const w = size;
   const h = size * 0.667;
   const render = FLAGS[code];
+
+  if (render) {
+    return (
+      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 2, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+        {render(w, h)}
+      </div>
+    );
+  }
+
+  // Emoji fallback for any other country code
+  const emoji = emojiFlag(code);
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 2, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
-      {render ? render(w, h) : null}
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: w,
+        height: h,
+        borderRadius: 2,
+        border: "1px solid rgba(255,255,255,0.08)",
+        background: "#0a0a0a",
+        fontSize: Math.round(h * 0.95),
+        lineHeight: 1,
+      }}
+    >
+      {emoji}
     </div>
   );
 }

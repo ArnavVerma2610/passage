@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Flag from '@/components/Flag';
 import Btn from '@/components/Btn';
 import SliderInput from '@/components/SliderInput';
-import { c, MONO, COUNTRIES_ACCESS, PROFILE_SLIDES } from '@/lib/data';
+import DotMatrix, { GLOBE_FRAMES, PASSPORT_FRAMES, COMPASS_FRAMES, WORLD_FRAMES } from '@/components/DotMatrix';
+import { c, MONO, COUNTRIES_ACCESS, COUNTRIES_LIST, PROFILE_SLIDES } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
 import type { ProfileValues } from '@/lib/types';
 
@@ -28,6 +29,9 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
     <div style={{ ...WRAP, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', opacity: vis ? 1 : 0, transition: 'opacity 1s' }}>
       <div style={{ ...INNER, paddingBottom: 60, paddingTop: 60 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
+          <DotMatrix frames={GLOBE_FRAMES} intervalMs={260} dotSize={5} gap={4} />
+        </div>
         <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: c.faint, marginBottom: 14 }}>passage</div>
         <div style={{ fontSize: '1.875rem', lineHeight: 1.2, marginBottom: 18 }}>
           The world isn't<br />the same size<br />for everyone.
@@ -47,49 +51,126 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
 
 function PassportScreen({ onSelect }: { onSelect: (code: string) => void }) {
   const [sel, setSel] = useState<string | null>(null);
-  const countries = Object.values(COUNTRIES_ACCESS);
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Click-outside to close dropdown
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return COUNTRIES_LIST;
+    return COUNTRIES_LIST.filter(co =>
+      co.name.toLowerCase().includes(q) || co.code.toLowerCase().includes(q)
+    );
+  }, [query]);
+
+  const selected = sel ? COUNTRIES_ACCESS[sel] : null;
 
   return (
     <div style={{ ...WRAP, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100vh' }}>
       <div style={{ ...INNER, paddingTop: 40, paddingBottom: 40 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 30 }}>
+          <DotMatrix frames={PASSPORT_FRAMES} intervalMs={520} dotSize={5} gap={4} />
+        </div>
+
         <div style={{ fontSize: '0.625rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: c.faint, marginBottom: 6 }}>Step 1 of 3</div>
         <div style={{ fontSize: '1.375rem', marginBottom: 6 }}>Your passport</div>
         <div style={{ fontSize: '0.875rem', color: c.dim, marginBottom: 28 }}>This determines your world.</div>
 
-        <div style={{ marginBottom: 28 }}>
-          {countries.map(co => {
-            const isSelected = sel === co.code;
-            return (
-              <div
-                key={co.code}
-                onClick={() => setSel(co.code)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 16,
-                  padding: '14px 0', borderBottom: `1px solid ${c.ghost}`,
-                  cursor: 'pointer', transition: 'opacity 0.15s',
-                  opacity: sel && !isSelected ? 0.45 : 1,
-                }}
-              >
-                <Flag code={co.code} size={28} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.9375rem', color: c.fg }}>{co.name}</div>
-                  <div style={{ fontSize: '0.6875rem', color: c.faint, marginTop: 2 }}>
-                    Mobility {co.score}/100 · {co.visaFree} countries visa-free
+        <div ref={wrapRef} style={{ position: 'relative', marginBottom: 28 }}>
+          {/* Trigger / search input */}
+          <div
+            onClick={() => setOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '14px 16px',
+              border: `1px solid ${open || sel ? c.fg : c.ghost}`,
+              cursor: 'text',
+              background: c.surface,
+            }}
+          >
+            {selected && !open && <Flag code={selected.code} size={26} />}
+            <input
+              value={open ? query : selected ? selected.name : ''}
+              onChange={e => { setQuery(e.target.value); setOpen(true); }}
+              onFocus={() => setOpen(true)}
+              placeholder="Search any country…"
+              style={{
+                flex: 1, background: 'none', border: 'none', outline: 'none',
+                color: c.fg, fontFamily: MONO, fontSize: '0.9375rem',
+              }}
+            />
+            <span style={{ color: c.faint, fontSize: '0.75rem', userSelect: 'none' }}>{open ? '▴' : '▾'}</span>
+          </div>
+
+          {/* Dropdown list */}
+          {open && (
+            <div
+              style={{
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                maxHeight: 320, overflowY: 'auto',
+                border: `1px solid ${c.ghost}`, background: c.surface,
+                zIndex: 20,
+              }}
+            >
+              {filtered.length === 0 ? (
+                <div style={{ padding: '14px 16px', fontSize: '0.8125rem', color: c.faint }}>
+                  No country matches "{query}".
+                </div>
+              ) : filtered.map(co => {
+                const isSelected = sel === co.code;
+                return (
+                  <div
+                    key={co.code}
+                    onClick={() => { setSel(co.code); setQuery(''); setOpen(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '11px 16px',
+                      borderBottom: `1px solid ${c.ghost}`,
+                      cursor: 'pointer',
+                      background: isSelected ? '#111' : 'transparent',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = '#0d0d0d'; }}
+                    onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+                  >
+                    <Flag code={co.code} size={22} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.875rem', color: c.fg, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {co.name}
+                      </div>
+                      <div style={{ fontSize: '0.625rem', color: c.faint, marginTop: 2 }}>
+                        {co.code} · {co.score}/100 · {co.visaFree} visa-free
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div style={{
-                  width: 18, height: 18, flexShrink: 0,
-                  border: `1px solid ${isSelected ? c.fg : c.ghost}`,
-                  background: isSelected ? c.fg : 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.625rem', color: c.bg, transition: 'all 0.15s',
-                }}>
-                  {isSelected ? '✓' : ''}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* Preview card for the selected country */}
+        {selected && !open && (
+          <div style={{ padding: '14px 16px', border: `1px solid ${c.ghost}`, marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: c.dim, marginBottom: 6 }}>
+              <span>Mobility score</span>
+              <span style={{ color: c.fg }}>{selected.score}/100</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: c.dim }}>
+              <span>Visa-free destinations</span>
+              <span style={{ color: c.fg }}>{selected.visaFree}</span>
+            </div>
+          </div>
+        )}
 
         {sel && <Btn onClick={() => onSelect(sel)}>This is my passport</Btn>}
       </div>
@@ -121,6 +202,10 @@ function ProfileBuilderScreen({ onComplete }: { onComplete: (values: ProfileValu
   return (
     <div style={{ ...WRAP, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100vh' }}>
       <div style={{ ...INNER, paddingTop: 40, paddingBottom: 40 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 26 }}>
+          <DotMatrix frames={COMPASS_FRAMES} intervalMs={300} dotSize={4} gap={3} />
+        </div>
+
         <div style={{ fontSize: '0.625rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: c.faint, marginBottom: 6 }}>Step 2 of 3 — Profile</div>
         <div style={{ display: 'flex', gap: 4, marginBottom: 32 }}>
           {PROFILE_SLIDES.map((_, i) => (
@@ -150,6 +235,10 @@ function MobilityScreen({ passport, onContinue }: { passport: string; onContinue
   return (
     <div style={{ ...WRAP, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100vh' }}>
       <div style={{ ...INNER, paddingTop: 40, paddingBottom: 40 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <DotMatrix frames={WORLD_FRAMES} intervalMs={420} dotSize={3} gap={2} />
+        </div>
+
         <div style={{ fontSize: '0.625rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: c.faint, marginBottom: 8 }}>
           Step 3 of 3 — {data.name} passport
         </div>

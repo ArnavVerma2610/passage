@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { c, MONO } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
+import { computeAmpScore, getTier, effectiveVisaProb } from '@/lib/amp';
 import type { Destination } from '@/lib/types';
 
 interface DestCardProps {
@@ -16,8 +17,11 @@ export default function DestCard({ dest, passport }: DestCardProps) {
   const addSwipedDestination   = usePassageStore(s => s.addSwipedDestination);
   const removeSwipedDestination = usePassageStore(s => s.removeSwipedDestination);
 
-  const prob   = dest.visaProb[passport] || 50;
-  const saved  = swipedDestinations.some(e => e.id === dest.id && e.dir === 'right');
+  const amp      = usePassageStore(s => s.amp);
+  const tier     = getTier(computeAmpScore(amp));
+  const baseProb = dest.visaProb[passport] || 50;
+  const prob     = effectiveVisaProb(baseProb, tier);
+  const saved    = swipedDestinations.some(e => e.id === dest.id && e.dir === 'right');
 
   const toggleSave = (e: React.MouseEvent) => {
     e.stopPropagation();

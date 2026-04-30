@@ -1,25 +1,22 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Flag from '@/components/Flag';
+import OnboardingShell from '@/components/OnboardingShell';
+import DotMatrix, { BIG_GLOBE_FRAMES, BIG_COMPASS_FRAMES } from '@/components/DotMatrix';
 import Btn from '@/components/Btn';
 import SliderInput from '@/components/SliderInput';
-import DotMatrix, { GLOBE_FRAMES, PASSPORT_FRAMES, COMPASS_FRAMES, WORLD_FRAMES } from '@/components/DotMatrix';
-import { c, MONO, COUNTRIES_ACCESS, COUNTRIES_LIST, PROFILE_SLIDES } from '@/lib/data';
+import SignInScreen from '@/components/SignInScreen';
+import IdentityScreen from '@/components/IdentityScreen';
+import AmpFormScreen from '@/components/AmpFormScreen';
+import AmpRevealScreen from '@/components/AmpRevealScreen';
+import { c, MONO, PROFILE_SLIDES } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
-import type { ProfileValues } from '@/lib/types';
+import type { ProfileValues, User, Identity } from '@/lib/types';
+import type { AmpProfile } from '@/lib/amp';
+import { defaultAmpProfile } from '@/lib/amp';
 
-type OnboardingScreen = 'welcome' | 'passport' | 'profile' | 'mobility';
-
-const WRAP: React.CSSProperties = {
-  fontFamily: MONO, minHeight: '100vh', fontSize: '0.875rem',
-  lineHeight: 1.6, letterSpacing: '-0.01em',
-};
-
-const INNER: React.CSSProperties = {
-  maxWidth: 480, margin: '0 auto', padding: '0 28px',
-};
+type Screen = 'welcome' | 'signin' | 'identity' | 'amp' | 'reveal' | 'preferences';
 
 // ── Welcome ───────────────────────────────────────────────────────────────────
 
@@ -27,167 +24,38 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const [vis, setVis] = useState(false);
   useEffect(() => { setTimeout(() => setVis(true), 200); }, []);
   return (
-    <div style={{ ...WRAP, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', opacity: vis ? 1 : 0, transition: 'opacity 1s' }}>
-      <div style={{ ...INNER, paddingBottom: 60, paddingTop: 60 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
-          <DotMatrix frames={GLOBE_FRAMES} intervalMs={260} dotSize={5} gap={4} />
+    <div style={{ opacity: vis ? 1 : 0, transition: 'opacity 0.9s' }}>
+      <OnboardingShell
+        art={<DotMatrix frames={BIG_GLOBE_FRAMES} intervalMs={300} dotSize={7} gap={4} />}
+      >
+        <div style={{ fontSize: '0.625rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: c.faint, marginBottom: 14 }}>
+          passage
         </div>
-        <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: c.faint, marginBottom: 14 }}>passage</div>
-        <div style={{ fontSize: '1.875rem', lineHeight: 1.2, marginBottom: 18 }}>
+        <div style={{ fontSize: '2.25rem', lineHeight: 1.15, marginBottom: 18 }}>
           The world isn't<br />the same size<br />for everyone.
         </div>
-        <div style={{ fontSize: '0.875rem', color: c.dim, lineHeight: 1.7, marginBottom: 52 }}>
+        <div style={{ fontSize: '0.875rem', color: c.dim, lineHeight: 1.7, marginBottom: 36 }}>
           See the places you can actually reach.<br />
-          Get paired with people attempting the same<br />
-          crossing from a different starting point.
+          Build your AMP score to unlock faster approvals,<br />
+          premium routes, and matching with travelers attempting<br />
+          the same crossing from a different starting point.
         </div>
         <Btn onClick={onStart}>Begin</Btn>
-      </div>
+      </OnboardingShell>
     </div>
   );
 }
 
-// ── Passport ──────────────────────────────────────────────────────────────────
+// ── Travel preferences ──────────────────────────────────────────────────────
 
-function PassportScreen({ onSelect }: { onSelect: (code: string) => void }) {
-  const [sel, setSel] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  // Click-outside to close dropdown
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return COUNTRIES_LIST;
-    return COUNTRIES_LIST.filter(co =>
-      co.name.toLowerCase().includes(q) || co.code.toLowerCase().includes(q)
-    );
-  }, [query]);
-
-  const selected = sel ? COUNTRIES_ACCESS[sel] : null;
-
-  return (
-    <div style={{ ...WRAP, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100vh' }}>
-      <div style={{ ...INNER, paddingTop: 40, paddingBottom: 40 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 30 }}>
-          <DotMatrix frames={PASSPORT_FRAMES} intervalMs={520} dotSize={5} gap={4} />
-        </div>
-
-        <div style={{ fontSize: '0.625rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: c.faint, marginBottom: 6 }}>Step 1 of 3</div>
-        <div style={{ fontSize: '1.375rem', marginBottom: 6 }}>Your passport</div>
-        <div style={{ fontSize: '0.875rem', color: c.dim, marginBottom: 28 }}>This determines your world.</div>
-
-        <div ref={wrapRef} style={{ position: 'relative', marginBottom: 28 }}>
-          {/* Trigger / search input */}
-          <div
-            onClick={() => setOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              padding: '14px 16px',
-              border: `1px solid ${open || sel ? c.fg : c.ghost}`,
-              cursor: 'text',
-              background: c.surface,
-            }}
-          >
-            {selected && !open && <Flag code={selected.code} size={26} />}
-            <input
-              value={open ? query : selected ? selected.name : ''}
-              onChange={e => { setQuery(e.target.value); setOpen(true); }}
-              onFocus={() => setOpen(true)}
-              placeholder="Search any country…"
-              style={{
-                flex: 1, background: 'none', border: 'none', outline: 'none',
-                color: c.fg, fontFamily: MONO, fontSize: '0.9375rem',
-              }}
-            />
-            <span style={{ color: c.faint, fontSize: '0.75rem', userSelect: 'none' }}>{open ? '▴' : '▾'}</span>
-          </div>
-
-          {/* Dropdown list */}
-          {open && (
-            <div
-              style={{
-                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-                maxHeight: 320, overflowY: 'auto',
-                border: `1px solid ${c.ghost}`, background: c.surface,
-                zIndex: 20,
-              }}
-            >
-              {filtered.length === 0 ? (
-                <div style={{ padding: '14px 16px', fontSize: '0.8125rem', color: c.faint }}>
-                  No country matches "{query}".
-                </div>
-              ) : filtered.map(co => {
-                const isSelected = sel === co.code;
-                return (
-                  <div
-                    key={co.code}
-                    onClick={() => { setSel(co.code); setQuery(''); setOpen(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '11px 16px',
-                      borderBottom: `1px solid ${c.ghost}`,
-                      cursor: 'pointer',
-                      background: isSelected ? '#111' : 'transparent',
-                      transition: 'background 0.12s',
-                    }}
-                    onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = '#0d0d0d'; }}
-                    onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
-                  >
-                    <Flag code={co.code} size={22} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.875rem', color: c.fg, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {co.name}
-                      </div>
-                      <div style={{ fontSize: '0.625rem', color: c.faint, marginTop: 2 }}>
-                        {co.code} · {co.score}/100 · {co.visaFree} visa-free
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Preview card for the selected country */}
-        {selected && !open && (
-          <div style={{ padding: '14px 16px', border: `1px solid ${c.ghost}`, marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: c.dim, marginBottom: 6 }}>
-              <span>Mobility score</span>
-              <span style={{ color: c.fg }}>{selected.score}/100</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: c.dim }}>
-              <span>Visa-free destinations</span>
-              <span style={{ color: c.fg }}>{selected.visaFree}</span>
-            </div>
-          </div>
-        )}
-
-        {sel && <Btn onClick={() => onSelect(sel)}>This is my passport</Btn>}
-      </div>
-    </div>
-  );
-}
-
-// ── Profile builder ───────────────────────────────────────────────────────────
-
-function ProfileBuilderScreen({ onComplete }: { onComplete: (values: ProfileValues) => void }) {
+function PreferencesScreen({ onComplete }: { onComplete: (values: ProfileValues) => void }) {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<ProfileValues>({
     cuisine: 5, distance: 5, budget: 5, risk: 5, language: 5, solitude: 5,
   });
   const [fading, setFading] = useState(false);
 
-  const slide  = PROFILE_SLIDES[step];
+  const slide = PROFILE_SLIDES[step];
   const isLast = step === PROFILE_SLIDES.length - 1;
 
   const next = () => {
@@ -200,77 +68,34 @@ function ProfileBuilderScreen({ onComplete }: { onComplete: (values: ProfileValu
   };
 
   return (
-    <div style={{ ...WRAP, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100vh' }}>
-      <div style={{ ...INNER, paddingTop: 40, paddingBottom: 40 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 26 }}>
-          <DotMatrix frames={COMPASS_FRAMES} intervalMs={300} dotSize={4} gap={3} />
-        </div>
-
-        <div style={{ fontSize: '0.625rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: c.faint, marginBottom: 6 }}>Step 2 of 3 — Profile</div>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 32 }}>
-          {PROFILE_SLIDES.map((_, i) => (
-            <div key={i} style={{ flex: 1, height: 2, background: i <= step ? c.fg : c.ghost, transition: 'background 0.3s' }} />
-          ))}
-        </div>
-        <div style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.25s' }}>
-          <SliderInput
-            value={values[slide.key]}
-            onChange={v => setValues({ ...values, [slide.key]: v })}
-            label={slide.label} desc={slide.desc} low={slide.low} high={slide.high} icon={slide.icon}
-          />
-        </div>
-        <Btn onClick={next}>{isLast ? 'See my world' : 'Next'}</Btn>
-      </div>
-    </div>
-  );
-}
-
-// ── Mobility reveal ───────────────────────────────────────────────────────────
-
-function MobilityScreen({ passport, onContinue }: { passport: string; onContinue: () => void }) {
-  const data = COUNTRIES_ACCESS[passport];
-  const [anim, setAnim] = useState(false);
-  useEffect(() => { setTimeout(() => setAnim(true), 400); }, []);
-
-  return (
-    <div style={{ ...WRAP, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100vh' }}>
-      <div style={{ ...INNER, paddingTop: 40, paddingBottom: 40 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-          <DotMatrix frames={WORLD_FRAMES} intervalMs={420} dotSize={3} gap={2} />
-        </div>
-
-        <div style={{ fontSize: '0.625rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: c.faint, marginBottom: 8 }}>
-          Step 3 of 3 — {data.name} passport
-        </div>
-        <div style={{ fontSize: '4.75rem', opacity: anim ? 1 : 0, transition: 'opacity 1.2s', marginBottom: 0, lineHeight: 1 }}>
-          {data.score}
-        </div>
-        <div style={{ fontSize: '0.875rem', color: c.faint, marginBottom: 28 }}>/ 100 mobility score</div>
-        <div style={{ width: '100%', height: 2, background: c.ghost, marginBottom: 32, position: 'relative' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, height: 2, width: anim ? `${data.score}%` : '0%', background: c.fg, transition: 'width 1.5s ease-out' }} />
-        </div>
-
-        {([
-          ['Visa-free access', `${data.visaFree} countries`, c.fg],
-          ['Restricted', `${data.restricted} countries`, c.dim],
-          ['Effectively impossible', `${data.impossible} countries`, c.danger],
-        ] as const).map(([l, v, col]) => (
-          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: `1px solid ${c.ghost}` }}>
-            <span style={{ fontSize: '0.875rem', color: c.dim }}>{l}</span>
-            <span style={{ fontSize: '0.875rem', color: col }}>{v}</span>
-          </div>
+    <OnboardingShell
+      step={`Step 4 — Travel preferences · ${step + 1} / ${PROFILE_SLIDES.length}`}
+      art={<DotMatrix frames={BIG_COMPASS_FRAMES} intervalMs={360} dotSize={6} gap={4} />}
+    >
+      <div style={{ display: 'flex', gap: 4, marginBottom: 32 }}>
+        {PROFILE_SLIDES.map((_, i) => (
+          <div key={i} style={{ flex: 1, height: 2, background: i <= step ? c.fg : c.ghost, transition: 'background 0.3s' }} />
         ))}
-
-        <div style={{ fontSize: '0.875rem', color: c.faint, fontStyle: 'italic', marginTop: 28, marginBottom: 32, lineHeight: 1.7 }}>
-          {data.score > 80
-            ? 'Most of the world is open to you. That is not normal.'
-            : data.score > 40
-            ? 'About a third of the world is accessible. The rest requires patience or luck.'
-            : 'Most borders are closed to you before you\'ve done anything wrong.'}
-        </div>
-        <Btn onClick={onContinue}>Start discovering</Btn>
       </div>
-    </div>
+      <div style={{ fontSize: '1.5rem', lineHeight: 1.2, marginBottom: 8 }}>
+        How you travel.
+      </div>
+      <div style={{ fontSize: '0.875rem', color: c.dim, lineHeight: 1.6, marginBottom: 28 }}>
+        Six quick sliders so we can match destinations to your style.
+      </div>
+      <div style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.25s' }}>
+        <SliderInput
+          value={values[slide.key]}
+          onChange={v => setValues({ ...values, [slide.key]: v })}
+          label={slide.label}
+          desc={slide.desc}
+          low={slide.low}
+          high={slide.high}
+          icon={slide.icon}
+        />
+      </div>
+      <Btn onClick={next}>{isLast ? 'See my world' : 'Next'}</Btn>
+    </OnboardingShell>
   );
 }
 
@@ -280,42 +105,72 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   const _hasHydrated  = usePassageStore(s => s._hasHydrated);
+  const storedUser     = usePassageStore(s => s.user);
+  const storedAmpDone  = usePassageStore(s => s.ampCompleted);
   const storedPassport = usePassageStore(s => s.passport);
-  const setPassport   = usePassageStore(s => s.setPassport);
-  const setProfile    = usePassageStore(s => s.setProfile);
 
-  const [screen, setScreen]           = useState<OnboardingScreen>('welcome');
-  const [localPassport, setLocalPassport] = useState('');
-  const [localProfile, setLocalProfile]   = useState<ProfileValues>({
-    cuisine: 5, distance: 5, budget: 5, risk: 5, language: 5, solitude: 5,
-  });
+  const setUser           = usePassageStore(s => s.setUser);
+  const setIdentity       = usePassageStore(s => s.setIdentity);
+  const setAmp            = usePassageStore(s => s.setAmp);
+  const setAmpCompleted   = usePassageStore(s => s.setAmpCompleted);
+  const setProfile        = usePassageStore(s => s.setProfile);
+
+  const [screen, setScreen]     = useState<Screen>('welcome');
+  const [pendingUser, setPendingUser]         = useState<User | null>(null);
+  const [pendingIdentity, setPendingIdentity] = useState<Identity | null>(null);
+  const [pendingAmp, setPendingAmp]           = useState<AmpProfile>(defaultAmpProfile());
   const [trans, setTrans] = useState(false);
 
+  // If user already finished onboarding, jump to discover
   useEffect(() => {
-    if (_hasHydrated && storedPassport) router.replace('/discover');
-  }, [_hasHydrated, storedPassport, router]);
+    if (_hasHydrated && storedUser && storedPassport && storedAmpDone) {
+      router.replace('/discover');
+    }
+  }, [_hasHydrated, storedUser, storedPassport, storedAmpDone, router]);
 
-  const go = (s: OnboardingScreen) => {
+  const go = (s: Screen) => {
     setTrans(true);
-    setTimeout(() => { setScreen(s); setTrans(false); }, 350);
-  };
-
-  const handleComplete = () => {
-    setPassport(localPassport);
-    setProfile(localProfile);
-    router.push('/discover');
+    setTimeout(() => { setScreen(s); setTrans(false); }, 320);
   };
 
   if (!_hasHydrated) return null;
 
+  const handleSignIn = (user: User) => {
+    setUser(user);
+    setPendingUser(user);
+    go('identity');
+  };
+
+  const handleIdentity = (identity: Identity) => {
+    setIdentity(identity);
+    setPendingIdentity(identity);
+    go('amp');
+  };
+
+  const handleAmp = (amp: AmpProfile) => {
+    setAmp(amp);
+    setPendingAmp(amp);
+    go('reveal');
+  };
+
+  const handleReveal = () => {
+    setAmpCompleted(true);
+    go('preferences');
+  };
+
+  const handlePreferences = (values: ProfileValues) => {
+    setProfile(values);
+    router.push('/discover');
+  };
+
   return (
-    <div style={{ opacity: trans ? 0 : 1, transition: 'opacity 0.35s ease-out' }}>
-      {screen === 'welcome'   && <WelcomeScreen onStart={() => go('passport')} />}
-      {screen === 'passport'  && <PassportScreen onSelect={c => { setLocalPassport(c); go('profile'); }} />}
-      {screen === 'profile'   && <ProfileBuilderScreen onComplete={v => { setLocalProfile(v); go('mobility'); }} />}
-      {screen === 'mobility'  && localPassport && (
-        <MobilityScreen passport={localPassport} onContinue={handleComplete} />
-      )}
+    <div style={{ opacity: trans ? 0 : 1, transition: 'opacity 0.32s ease-out' }}>
+      {screen === 'welcome'     && <WelcomeScreen onStart={() => go('signin')} />}
+      {screen === 'signin'      && <SignInScreen onComplete={handleSignIn} />}
+      {screen === 'identity'    && <IdentityScreen initialName={pendingUser?.name ?? ''} onComplete={handleIdentity} />}
+      {screen === 'amp'         && <AmpFormScreen initial={pendingAmp} onComplete={handleAmp} />}
+      {screen === 'reveal'      && <AmpRevealScreen profile={pendingAmp} onContinue={handleReveal} />}
+      {screen === 'preferences' && <PreferencesScreen onComplete={handlePreferences} />}
     </div>
   );
 }

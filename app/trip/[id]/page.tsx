@@ -8,6 +8,7 @@ import FoodMenuModal, { priceDollars } from '@/components/FoodMenuModal';
 import ItineraryEditor from '@/components/ItineraryEditor';
 import { c, MONO, DESTINATIONS } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
+import { computeAmpScore, getTier, effectiveVisaProb, TIER_META } from '@/lib/amp';
 import type { BookingType, FoodSpot } from '@/lib/types';
 
 export default function TripPage() {
@@ -16,6 +17,7 @@ export default function TripPage() {
 
   const _hasHydrated           = usePassageStore(s => s._hasHydrated);
   const passport               = usePassageStore(s => s.passport);
+  const amp                    = usePassageStore(s => s.amp);
   const setSelectedDestination = usePassageStore(s => s.setSelectedDestination);
 
   const [tab, setTab]                   = useState<'plan' | 'food' | 'book'>('plan');
@@ -32,7 +34,10 @@ export default function TripPage() {
 
   if (!_hasHydrated || !passport || !dest) return null;
 
-  const prob = dest.visaProb[passport] || 50;
+  const baseProb = dest.visaProb[passport] || 50;
+  const tier     = getTier(computeAmpScore(amp));
+  const tierMeta = TIER_META[tier];
+  const prob     = effectiveVisaProb(baseProb, tier);
   const probColor = prob > 80 ? c.sub : '#cc9900';
 
   const cardStyle: React.CSSProperties = {
@@ -60,6 +65,9 @@ export default function TripPage() {
             <span style={{ padding: '5px 10px', fontSize: '0.625rem', border: `1px solid ${c.ghost}`, color: c.faint }}>{dest.currency}</span>
             <span style={{ padding: '5px 10px', fontSize: '0.625rem', border: `1px solid ${prob > 80 ? c.ghost : '#440000'}`, color: prob > 80 ? c.sub : '#cc4444' }}>
               {prob}% VISA
+            </span>
+            <span style={{ padding: '5px 10px', fontSize: '0.625rem', border: `1px solid ${tierMeta.color}`, color: tierMeta.color }}>
+              {tierMeta.short}
             </span>
           </div>
         </div>

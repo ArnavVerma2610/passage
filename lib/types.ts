@@ -102,6 +102,24 @@ export interface ProfileSlide {
   icon: string;
 }
 
+export type AuthProvider = 'google' | 'apple' | 'email';
+
+export interface User {
+  name: string;
+  email: string;
+  provider: AuthProvider;
+  avatarInitials: string;
+  signedInAt: string; // ISO date
+}
+
+export interface Identity {
+  fullName: string;
+  dateOfBirth: string;       // ISO yyyy-mm-dd or empty
+  passportNumber: string;
+  passportCountry: string;   // ISO 2-letter code
+  documentVerified: boolean; // demo: always true after submit
+}
+
 export type BookingType = 'flight' | 'hotel' | 'visa';
 
 export interface BookingResultFlight {

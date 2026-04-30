@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { ProfileValues, Destination, ItineraryDay, ItineraryStyle } from './types';
+import type {
+  ProfileValues,
+  Destination,
+  ItineraryDay,
+  ItineraryStyle,
+  User,
+  Identity,
+} from './types';
+import type { AmpProfile } from './amp';
+import { defaultAmpProfile } from './amp';
 
 export interface SwipedEntry {
   id: string;
@@ -9,7 +18,11 @@ export interface SwipedEntry {
 
 interface PassageStore {
   // ── persisted ──────────────────────────────────────────────────────────────
-  passport: string;
+  user: User | null;
+  identity: Identity | null;
+  amp: AmpProfile;
+  ampCompleted: boolean;
+  passport: string;            // mirrors identity.passportCountry — kept for legacy reads
   profile: ProfileValues;
   fontSize: number;
   fontSizeSet: boolean;
@@ -26,10 +39,18 @@ interface PassageStore {
 
   // ── actions ────────────────────────────────────────────────────────────────
   setHasHydrated: (v: boolean) => void;
+  setUser: (user: User | null) => void;
+  signOut: () => void;
+
+  setIdentity: (identity: Identity) => void;
   setPassport: (code: string) => void;
   setProfile: (values: ProfileValues) => void;
   setFontSize: (size: number) => void;
   confirmFontSize: () => void;
+  setAmpField: (categoryKey: string, fieldKey: string, value: number) => void;
+  setAmp: (amp: AmpProfile) => void;
+  setAmpCompleted: (v: boolean) => void;
+  resetAmp: () => void;
   addSwipedDestination: (id: string, dir: 'left' | 'right') => void;
   removeSwipedDestination: (id: string) => void;
   clearSwipes: () => void;
@@ -63,6 +84,10 @@ function renumberDays(days: ItineraryDay[]): ItineraryDay[] {
 export const usePassageStore = create<PassageStore>()(
   persist(
     (set) => ({
+      user: null,
+      identity: null,
+      amp: defaultAmpProfile(),
+      ampCompleted: false,
       passport: '',
       profile: DEFAULT_PROFILE,
       fontSize: 16,
@@ -75,10 +100,37 @@ export const usePassageStore = create<PassageStore>()(
       _hasHydrated: false,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
-      setPassport: (code) => set({ passport: code }),
+      setUser: (user) => set({ user }),
+      signOut: () => set({
+        user: null,
+        identity: null,
+        amp: defaultAmpProfile(),
+        ampCompleted: false,
+        passport: '',
+        swipedDestinations: [],
+        customItineraries: {},
+        itineraryStyle: {},
+      }),
+
+      setIdentity: (identity) => set({ identity, passport: identity.passportCountry }),
+      setPassport: (code) => set((s) => ({
+        passport: code,
+        identity: s.identity ? { ...s.identity, passportCountry: code } : s.identity,
+      })),
       setProfile: (values) => set({ profile: values }),
       setFontSize: (size) => set({ fontSize: size }),
       confirmFontSize: () => set({ fontSizeSet: true }),
+
+      setAmpField: (categoryKey, fieldKey, value) =>
+        set((s) => ({
+          amp: {
+            ...s.amp,
+            [categoryKey]: { ...(s.amp[categoryKey] ?? {}), [fieldKey]: value },
+          },
+        })),
+      setAmp: (amp) => set({ amp }),
+      setAmpCompleted: (v) => set({ ampCompleted: v }),
+      resetAmp: () => set({ amp: defaultAmpProfile(), ampCompleted: false }),
 
       addSwipedDestination: (id, dir) =>
         set((s) => {
@@ -99,6 +151,10 @@ export const usePassageStore = create<PassageStore>()(
 
       resetOnboarding: () =>
         set({
+          user: null,
+          identity: null,
+          amp: defaultAmpProfile(),
+          ampCompleted: false,
           passport: '',
           profile: DEFAULT_PROFILE,
           swipedDestinations: [],
@@ -148,6 +204,10 @@ export const usePassageStore = create<PassageStore>()(
       name: 'passage-store',
       storage: ssrSafeStorage,
       partialize: (state) => ({
+        user: state.user,
+        identity: state.identity,
+        amp: state.amp,
+        ampCompleted: state.ampCompleted,
         passport: state.passport,
         profile: state.profile,
         fontSize: state.fontSize,

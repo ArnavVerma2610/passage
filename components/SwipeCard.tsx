@@ -8,6 +8,8 @@ import {
   type PanInfo,
 } from 'framer-motion';
 import { c, MONO } from '@/lib/data';
+import { usePassageStore } from '@/lib/store';
+import { computeAmpScore, getTier, effectiveVisaProb, TIER_META } from '@/lib/amp';
 import type { Destination } from '@/lib/types';
 
 const DIST_THRESHOLD = 100; // px — gesture offset to trigger swipe
@@ -31,7 +33,11 @@ export default function SwipeCard({ dest, passport, onSwipe }: SwipeCardProps) {
   const leftOpacity  = useTransform(x, [-110, -40], [1, 0]);
   const rightOpacity = useTransform(x, [40, 110], [0, 1]);
 
-  const prob = dest.visaProb[passport] || 50;
+  const baseProb = dest.visaProb[passport] || 50;
+  const amp      = usePassageStore(s => s.amp);
+  const tier     = getTier(computeAmpScore(amp));
+  const meta     = TIER_META[tier];
+  const prob     = effectiveVisaProb(baseProb, tier);
 
   // ── exit animation ────────────────────────────────────────────────────────
   const triggerExit = async (dir: 'left' | 'right') => {
@@ -92,6 +98,9 @@ export default function SwipeCard({ dest, passport, onSwipe }: SwipeCardProps) {
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
             <span style={{ padding: '5px 10px', fontSize: 10, letterSpacing: '0.08em', border: `1px solid ${prob > 80 ? c.faint : prob > 50 ? '#553300' : '#550000'}`, color: prob > 80 ? c.sub : prob > 50 ? '#aa7700' : '#aa0000' }}>
               {prob}% VISA PROB
+            </span>
+            <span style={{ padding: '5px 10px', fontSize: 10, letterSpacing: '0.08em', border: `1px solid ${meta.color}`, color: meta.color }}>
+              {meta.short}
             </span>
             <span style={{ padding: '5px 10px', fontSize: 10, letterSpacing: '0.08em', border: `1px solid ${c.ghost}`, color: c.faint }}>
               {dest.bestMonths}

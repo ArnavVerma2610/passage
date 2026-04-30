@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import OnboardingShell from '@/components/OnboardingShell';
 import DotMatrix, { BIG_GLOBE_FRAMES, BIG_COMPASS_FRAMES } from '@/components/DotMatrix';
@@ -121,9 +121,15 @@ export default function OnboardingPage() {
   const [pendingAmp, setPendingAmp]           = useState<AmpProfile>(defaultAmpProfile());
   const [trans, setTrans] = useState(false);
 
-  // If user already finished onboarding, jump to discover
+  // If user already finished onboarding, jump straight to /discover —
+  // but only on the FIRST hydration check. Once the user is walking through
+  // the flow and completes a step (e.g. AMP), we don't want this effect
+  // to re-fire and skip the rest of the screens.
+  const initialCheckRef = useRef(false);
   useEffect(() => {
-    if (_hasHydrated && storedUser && storedPassport && storedAmpDone) {
+    if (!_hasHydrated || initialCheckRef.current) return;
+    initialCheckRef.current = true;
+    if (storedUser && storedPassport && storedAmpDone) {
       router.replace('/discover');
     }
   }, [_hasHydrated, storedUser, storedPassport, storedAmpDone, router]);

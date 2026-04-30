@@ -28,6 +28,7 @@ interface PassageStore {
   fontSizeSet: boolean;
   customItineraries: Record<string, ItineraryDay[]>;
   itineraryStyle: Record<string, ItineraryStyle>;
+  discoverRound: number;       // increments every time the deck is reset
 
   // ── session ────────────────────────────────────────────────────────────────
   swipedDestinations: SwipedEntry[];
@@ -94,6 +95,7 @@ export const usePassageStore = create<PassageStore>()(
       fontSizeSet: false,
       customItineraries: {},
       itineraryStyle: {},
+      discoverRound: 0,
       swipedDestinations: [],
       selectedDestination: null,
       activeTab: 'discover',
@@ -144,7 +146,8 @@ export const usePassageStore = create<PassageStore>()(
         }),
       removeSwipedDestination: (id) =>
         set((s) => ({ swipedDestinations: s.swipedDestinations.filter(e => e.id !== id) })),
-      clearSwipes: () => set({ swipedDestinations: [] }),
+      clearSwipes: () =>
+        set((s) => ({ swipedDestinations: [], discoverRound: s.discoverRound + 1 })),
 
       setSelectedDestination: (dest) => set({ selectedDestination: dest }),
       setActiveTab: (tab) => set({ activeTab: tab }),
@@ -162,6 +165,7 @@ export const usePassageStore = create<PassageStore>()(
           activeTab: 'discover',
           customItineraries: {},
           itineraryStyle: {},
+          discoverRound: 0,
         }),
 
       setItinerary: (destId, days) =>
@@ -214,6 +218,7 @@ export const usePassageStore = create<PassageStore>()(
         fontSizeSet: state.fontSizeSet,
         customItineraries: state.customItineraries,
         itineraryStyle: state.itineraryStyle,
+        discoverRound: state.discoverRound,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

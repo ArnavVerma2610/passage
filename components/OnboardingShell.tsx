@@ -11,8 +11,9 @@ interface OnboardingShellProps {
 
 /**
  * Shared onboarding layout:
- *   - Desktop (≥ md): two-column grid; copy on one side, dot-matrix art on the other.
- *   - Mobile (< md): art collapses to a smaller block above the copy.
+ *   - Desktop (≥ md): two-column grid; copy on one side, dot-matrix art on the other,
+ *     both vertically centered against the full viewport.
+ *   - Mobile (< md): art collapses above the copy, the whole stack is vertically centered.
  */
 export default function OnboardingShell({ step, art, children, artSide = 'right' }: OnboardingShellProps) {
   return (
@@ -25,21 +26,45 @@ export default function OnboardingShell({ step, art, children, artSide = 'right'
         fontSize: '0.875rem',
         lineHeight: 1.6,
         letterSpacing: '-0.01em',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
       }}
     >
-      <div className="md:grid md:grid-cols-2 md:items-center md:min-h-screen md:gap-10">
+      <div
+        className="md:grid md:grid-cols-2 md:items-center md:gap-10"
+        style={{
+          width: '100%',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
         {/* Mobile-only art block (smaller) */}
         <div
           className="md:hidden"
-          style={{ display: 'flex', justifyContent: 'center', padding: '40px 24px 0' }}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '24px 24px 8px',
+          }}
         >
-          <div style={{ transform: 'scale(0.7)', transformOrigin: 'center top' }}>{art}</div>
+          <div style={{ transform: 'scale(0.7)', transformOrigin: 'center center' }}>{art}</div>
         </div>
 
-        {/* Copy column */}
+        {/* Copy column — centered both vertically (in the grid cell) and horizontally */}
         <div
           className={artSide === 'right' ? 'md:order-1' : 'md:order-2'}
-          style={{ padding: '32px 28px 64px', maxWidth: 560, width: '100%', margin: '0 auto' }}
+          style={{
+            padding: '24px 28px',
+            maxWidth: 560,
+            width: '100%',
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
         >
           {step && (
             <div
@@ -57,10 +82,10 @@ export default function OnboardingShell({ step, art, children, artSide = 'right'
           {children}
         </div>
 
-        {/* Desktop-only art column (large, full block) */}
+        {/* Desktop-only art column (large, centered) */}
         <div
           className={`hidden md:flex md:items-center md:justify-center ${artSide === 'right' ? 'md:order-2' : 'md:order-1'}`}
-          style={{ padding: '40px', minHeight: '60vh' }}
+          style={{ padding: '40px' }}
         >
           {art}
         </div>

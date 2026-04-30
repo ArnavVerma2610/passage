@@ -10,10 +10,9 @@ interface OnboardingShellProps {
 }
 
 /**
- * Shared onboarding layout:
- *   - Desktop (≥ md): two-column grid; copy on one side, dot-matrix art on the other,
- *     both vertically centered against the full viewport.
- *   - Mobile (< md): art collapses above the copy, the whole stack is vertically centered.
+ * Shared onboarding layout. Outer is `display: grid; place-items: center` against
+ * `min-height: 100vh`, which dead-centers the inner two-column grid both horizontally
+ * and vertically across the viewport on every screen.
  */
 export default function OnboardingShell({ step, art, children, artSide = 'right' }: OnboardingShellProps) {
   return (
@@ -26,44 +25,30 @@ export default function OnboardingShell({ step, art, children, artSide = 'right'
         fontSize: '0.875rem',
         lineHeight: 1.6,
         letterSpacing: '-0.01em',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
+        display: 'grid',
+        placeItems: 'center',
+        padding: '32px 16px',
       }}
     >
       <div
-        className="md:grid md:grid-cols-2 md:items-center md:gap-10"
+        className="md:grid md:grid-cols-2 md:items-center md:gap-16"
         style={{
+          display: 'grid',
           width: '100%',
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
+          maxWidth: 1200,
+          gridTemplateColumns: '1fr',
+          rowGap: 32,
+          alignItems: 'center',
         }}
       >
-        {/* Mobile-only art block (smaller) */}
-        <div
-          className="md:hidden"
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            padding: '24px 24px 8px',
-          }}
-        >
-          <div style={{ transform: 'scale(0.7)', transformOrigin: 'center center' }}>{art}</div>
-        </div>
-
-        {/* Copy column — centered both vertically (in the grid cell) and horizontally */}
+        {/* Copy column */}
         <div
           className={artSide === 'right' ? 'md:order-1' : 'md:order-2'}
           style={{
-            padding: '24px 28px',
+            padding: '0 16px',
             maxWidth: 560,
             width: '100%',
             margin: '0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
           }}
         >
           {step && (
@@ -82,10 +67,15 @@ export default function OnboardingShell({ step, art, children, artSide = 'right'
           {children}
         </div>
 
-        {/* Desktop-only art column (large, centered) */}
+        {/* Art column — vertically centered against the copy column */}
         <div
-          className={`hidden md:flex md:items-center md:justify-center ${artSide === 'right' ? 'md:order-2' : 'md:order-1'}`}
-          style={{ padding: '40px' }}
+          className={artSide === 'right' ? 'md:order-2' : 'md:order-1'}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '0 16px',
+          }}
         >
           {art}
         </div>

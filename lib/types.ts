@@ -1,0 +1,125 @@
+export interface CountryAccess {
+  name: string;
+  code: string;
+  visaFree: number;
+  restricted: number;
+  impossible: number;
+  score: number;
+}
+
+export interface FoodSpot {
+  name: string;
+  desc: string;
+  map: string;
+  type: string;
+  price: string;
+}
+
+export interface Friction {
+  transport: string;
+  language: string;
+  connectivity: string;
+}
+
+export interface Flight {
+  from: string;
+  to: string;
+  airline: string;
+  duration: string;
+  stops: number;
+  price: string;
+}
+
+export interface Hotel {
+  name: string;
+  type: string;
+  price: string;
+  desc: string;
+}
+
+export interface ItineraryDay {
+  day: number;
+  title: string;
+  desc: string;
+}
+
+export interface TravelPlan {
+  flights: Flight;
+  hotels: Hotel[];
+  itinerary: ItineraryDay[];
+}
+
+export interface Destination {
+  id: string;
+  name: string;
+  country: string;
+  region: string;
+  coords: string;
+  voiceNote: string;
+  voiceDuration: string;
+  prompts: string[];
+  foodSpots: FoodSpot[];
+  friction: Friction;
+  frictionLevel: number;
+  trivia: string;
+  deniedCount: number;
+  visaProb: Record<string, number>;
+  bestMonths: string;
+  avgTemp: string;
+  currency: string;
+  flightHub: string;
+  travelPlan: TravelPlan;
+}
+
+export interface ProfileValues {
+  cuisine: number;
+  distance: number;
+  budget: number;
+  risk: number;
+  language: number;
+  solitude: number;
+}
+
+export interface ProfileSlide {
+  key: keyof ProfileValues;
+  label: string;
+  desc: string;
+  low: string;
+  high: string;
+  icon: string;
+}
+
+export type BookingType = 'flight' | 'hotel' | 'visa';
+
+export interface BookingResultFlight {
+  from: string;
+  to: string;
+  airline: string;
+  duration: string;
+  price: string;
+  seat: string;
+  class: string;
+}
+
+export interface BookingResultHotel {
+  name: string;
+  hotelType: string;
+  pricePerNight: string;
+  nights: number;
+  confirmationCode: string;
+}
+
+export interface BookingResultVisa {
+  country: string;
+  processingTime: string;
+  applicationType: string;
+  applicationId: string;
+  status: string;
+}
+
+export interface BookingResult {
+  bookingRef: string;
+  issuedAt: string;
+  type: BookingType;
+  details: BookingResultFlight | BookingResultHotel | BookingResultVisa;
+}

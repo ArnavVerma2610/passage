@@ -3,6 +3,7 @@ import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import PageTransition from "@/components/PageTransition";
 import FontSizeEffect from "@/components/FontSizeEffect";
+import FloatingControls from "@/components/FloatingControls";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${jetbrainsMono.variable} font-mono antialiased`}>
         <FontSizeEffect />
         <PageTransition>{children}</PageTransition>
+        <FloatingControls />
       </body>
     </html>
   );

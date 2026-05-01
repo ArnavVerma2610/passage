@@ -84,7 +84,10 @@ export default function SwipeDeck({ passport }: SwipeDeckProps) {
   }
 
   return (
-    <div style={{ position: 'relative', maxWidth: 480, margin: '0 auto', padding: '24px 0 40px', minHeight: 600 }}>
+    <div
+      className="mx-auto max-w-[480px] md:max-w-[680px] lg:max-w-[760px]"
+      style={{ position: 'relative', padding: '24px 0 40px', minHeight: 600 }}
+    >
       {/* progress count */}
       <div style={{ textAlign: 'center', fontSize: '0.5625rem', color: c.faint, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 14 }}>
         round {discoverRound + 1} · {queue.length} left · {savedCount} saved

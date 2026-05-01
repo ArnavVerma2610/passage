@@ -28,8 +28,8 @@ export default function DotMatrix({
   intervalMs = 220,
   dotSize = 4,
   gap = 4,
-  color = '#fff',
-  dimColor = '#222',
+  color = 'var(--c-dot-on)',
+  dimColor = 'var(--c-dot-off)',
 }: DotMatrixProps) {
   const [idx, setIdx] = useState(0);
 

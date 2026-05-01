@@ -26,6 +26,7 @@ interface PassageStore {
   profile: ProfileValues;
   fontSize: number;
   fontSizeSet: boolean;
+  theme: 'dark' | 'light';
   customItineraries: Record<string, ItineraryDay[]>;
   itineraryStyle: Record<string, ItineraryStyle>;
   discoverRound: number;       // increments every time the deck is reset
@@ -48,6 +49,8 @@ interface PassageStore {
   setProfile: (values: ProfileValues) => void;
   setFontSize: (size: number) => void;
   confirmFontSize: () => void;
+  setTheme: (t: 'dark' | 'light') => void;
+  toggleTheme: () => void;
   setAmpField: (categoryKey: string, fieldKey: string, value: number) => void;
   setAmp: (amp: AmpProfile) => void;
   setAmpCompleted: (v: boolean) => void;
@@ -93,6 +96,7 @@ export const usePassageStore = create<PassageStore>()(
       profile: DEFAULT_PROFILE,
       fontSize: 16,
       fontSizeSet: false,
+      theme: 'dark',
       customItineraries: {},
       itineraryStyle: {},
       discoverRound: 0,
@@ -122,6 +126,8 @@ export const usePassageStore = create<PassageStore>()(
       setProfile: (values) => set({ profile: values }),
       setFontSize: (size) => set({ fontSize: size }),
       confirmFontSize: () => set({ fontSizeSet: true }),
+      setTheme: (t) => set({ theme: t }),
+      toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
 
       setAmpField: (categoryKey, fieldKey, value) =>
         set((s) => ({
@@ -216,6 +222,7 @@ export const usePassageStore = create<PassageStore>()(
         profile: state.profile,
         fontSize: state.fontSize,
         fontSizeSet: state.fontSizeSet,
+        theme: state.theme,
         customItineraries: state.customItineraries,
         itineraryStyle: state.itineraryStyle,
         discoverRound: state.discoverRound,

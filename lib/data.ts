@@ -2,16 +2,19 @@ import type { CountryAccess, Destination, ProfileSlide } from './types';
 
 export const MONO = "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace";
 
+// Theme-aware palette. Values resolve to CSS variables defined in
+// app/globals.css; flipping `data-theme` on <html> switches the entire UI.
 export const c = {
-  bg: "#000", fg: "#fff",
-  dim: "#bbb",
-  faint: "#888",
-  ghost: "#2a2a2a",
-  sub: "#ddd",
-  accent: "#fff",
-  danger: "#cc4444",
-  warn: "#cc9900",
-  surface: "#0a0a0a",
+  bg: "var(--c-bg)",
+  fg: "var(--c-fg)",
+  dim: "var(--c-dim)",
+  faint: "var(--c-faint)",
+  ghost: "var(--c-ghost)",
+  sub: "var(--c-sub)",
+  accent: "var(--c-fg)",
+  danger: "var(--c-danger)",
+  warn: "var(--c-warn)",
+  surface: "var(--c-surface)",
 } as const;
 
 // ── Countries ──────────────────────────────────────────────────────────────

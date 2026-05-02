@@ -12,7 +12,7 @@ import {
   type ScreenPoint,
   type ViewportSize,
 } from './classifier';
-import { clampGestureScale, type GestureSwipeDirection } from './actions';
+import { clampGestureScale, type GestureScrollDirection, type GestureSwipeDirection } from './actions';
 
 interface GestureFrame {
   hands: NormalizedLandmark[][];
@@ -23,7 +23,9 @@ interface GestureFrame {
 
 export type GestureIntent =
   | { type: 'click'; point: ScreenPoint }
+  | { type: 'rightClick'; point: ScreenPoint }
   | { type: 'swipe'; dir: GestureSwipeDirection }
+  | { type: 'scroll'; dir: GestureScrollDirection; point: ScreenPoint }
   | { type: 'scale'; scale: number };
 
 export interface GestureControllerOutput {
@@ -46,15 +48,22 @@ interface SwipePoint {
   t: number;
 }
 
+type PinchKind = 'index' | 'middle';
+
 const CURSOR_SMOOTHING = 0.58;
 const HAND_LOST_MS = 350;
-const PINCH_HOLD_CLICK_MS = 280;
+const PINCH_HOLD_CLICK_MS = 350;
 const CLICK_COOLDOWN_MS = 260;
 const SWIPE_WINDOW_MS = 280;
 const SWIPE_DISTANCE = 0.17;
 const SWIPE_VELOCITY = 0.95;
 const SWIPE_VERTICAL_LIMIT = 0.14;
 const SWIPE_COOLDOWN_MS = 850;
+const SCROLL_WINDOW_MS = 320;
+const SCROLL_DISTANCE = 0.11;
+const SCROLL_VELOCITY = 0.65;
+const SCROLL_HORIZONTAL_LIMIT = 0.13;
+const SCROLL_COOLDOWN_MS = 360;
 const ZOOM_ARM_MS = 180;
 const ZOOM_DEADZONE = 0.025;
 const ZOOM_GAIN = 1.05;
@@ -76,20 +85,60 @@ function isZoomReady(samples: HandSample[]) {
     samples.length >= 2 &&
     samples
       .slice(0, 2)
-      .every(sample => sample.fingers.extendedCount >= 3 && sample.pinchRatio > PINCH_OFF_RATIO)
+      .every(
+        sample =>
+          sample.fingers.extendedCount >= 3 &&
+          sample.pinchRatio > PINCH_OFF_RATIO &&
+          sample.middlePinchRatio > PINCH_OFF_RATIO,
+      )
   );
 }
 
-function choosePrimaryHand(samples: HandSample[], pinching: boolean) {
-  if (pinching || samples.some(sample => sample.pinchRatio < PINCH_ON_RATIO)) {
-    return samples.reduce((best, sample) => (sample.pinchRatio < best.pinchRatio ? sample : best));
+function pinchRatioForKind(sample: HandSample, kind: PinchKind) {
+  return kind === 'middle' ? sample.middlePinchRatio : sample.pinchRatio;
+}
+
+function pinchCenterForKind(sample: HandSample, kind: PinchKind) {
+  return kind === 'middle' ? sample.middlePinchCenter : sample.pinchCenter;
+}
+
+function closestPinchRatio(sample: HandSample) {
+  return Math.min(sample.pinchRatio, sample.middlePinchRatio);
+}
+
+function pinchKindForHand(sample: HandSample, activeKind: PinchKind | null): PinchKind | null {
+  if (activeKind && pinchRatioForKind(sample, activeKind) <= PINCH_OFF_RATIO) return activeKind;
+
+  const indexPinchOn = sample.pinchRatio < PINCH_ON_RATIO;
+  const middlePinchOn = sample.middlePinchRatio < PINCH_ON_RATIO;
+  if (!indexPinchOn && !middlePinchOn) return null;
+  return sample.middlePinchRatio < sample.pinchRatio ? 'middle' : 'index';
+}
+
+function choosePrimaryHand(samples: HandSample[], activeKind: PinchKind | null) {
+  if (activeKind) {
+    return samples.reduce((best, sample) =>
+      pinchRatioForKind(sample, activeKind) < pinchRatioForKind(best, activeKind) ? sample : best,
+    );
   }
+
+  if (samples.some(sample => closestPinchRatio(sample) < PINCH_ON_RATIO)) {
+    return samples.reduce((best, sample) =>
+      closestPinchRatio(sample) < closestPinchRatio(best) ? sample : best,
+    );
+  }
+
+  const scrollHand = samples.find(
+    sample => sample.fingers.index && sample.fingers.middle && sample.fingers.extendedCount === 2,
+  );
+  if (scrollHand) return scrollHand;
+
   return samples.find(sample => sample.fingers.index && sample.fingers.extendedCount <= 2) ?? samples[0];
 }
 
 class GestureControllerImpl implements GestureController {
   private cursor: ScreenPoint | null = null;
-  private pinching = false;
+  private pinchKind: PinchKind | null = null;
   private pinchStartedAt = 0;
   private lastPinchPoint: ScreenPoint | null = null;
   private pinchClickFired = false;
@@ -97,6 +146,8 @@ class GestureControllerImpl implements GestureController {
   private lastHandSeenAt = 0;
   private swipeHistory: SwipePoint[] = [];
   private lastSwipeAt = 0;
+  private scrollHistory: SwipePoint[] = [];
+  private lastScrollAt = 0;
   private zoomCandidateStartedAt = 0;
   private zooming = false;
   private zoomStartDistance = 0;
@@ -104,12 +155,13 @@ class GestureControllerImpl implements GestureController {
 
   reset() {
     this.cursor = null;
-    this.pinching = false;
+    this.pinchKind = null;
     this.pinchStartedAt = 0;
     this.lastPinchPoint = null;
     this.pinchClickFired = false;
     this.lastHandSeenAt = 0;
     this.swipeHistory = [];
+    this.scrollHistory = [];
     this.zoomCandidateStartedAt = 0;
     this.zooming = false;
   }
@@ -121,10 +173,11 @@ class GestureControllerImpl implements GestureController {
     const intents: GestureIntent[] = [];
 
     if (samples.length === 0) {
-      this.pinching = false;
+      this.pinchKind = null;
       this.lastPinchPoint = null;
       this.pinchClickFired = false;
       this.swipeHistory = [];
+      this.scrollHistory = [];
       this.zoomCandidateStartedAt = 0;
       this.zooming = false;
       if (!this.lastHandSeenAt || frame.now - this.lastHandSeenAt > HAND_LOST_MS) this.cursor = null;
@@ -143,17 +196,16 @@ class GestureControllerImpl implements GestureController {
     const zoomOutput = this.updateZoom(samples, frame, intents);
     if (zoomOutput) return zoomOutput;
 
-    const primary = choosePrimaryHand(samples, this.pinching);
-    let nextPinching = this.pinching;
-    if (!nextPinching && primary.pinchRatio < PINCH_ON_RATIO) nextPinching = true;
-    if (nextPinching && primary.pinchRatio > PINCH_OFF_RATIO) nextPinching = false;
+    const primary = choosePrimaryHand(samples, this.pinchKind);
+    const nextPinchKind = pinchKindForHand(primary, this.pinchKind);
 
-    const pose = poseForHand(primary, nextPinching);
-    if (nextPinching) this.updatePinchCursor(primary, frame.viewport);
+    const pose = poseForHand(primary, nextPinchKind !== null);
+    if (nextPinchKind) this.updatePinchCursor(primary, nextPinchKind, frame.viewport);
     else this.updateCursor(primary, pose, frame.viewport);
-    const pinchProgress = this.updatePinch(nextPinching, frame.now, intents);
+    const pinchProgress = this.updatePinch(nextPinchKind, frame.now, intents);
+    this.updateScroll(primary, pose, frame.now, frame.viewport, intents);
     this.updateSwipe(primary, pose, frame.now, intents);
-    this.pinching = nextPinching;
+    this.pinchKind = nextPinchKind;
 
     if (pose === 'fist') {
       this.cursor = null;
@@ -171,7 +223,7 @@ class GestureControllerImpl implements GestureController {
     return {
       cursor: this.cursor,
       pose,
-      status: statusForPose(pose, pinchProgress, this.pinchClickFired),
+      status: statusForPose(pose, pinchProgress, this.pinchClickFired, nextPinchKind),
       hands: samples.length,
       pinchProgress,
       intents,
@@ -189,10 +241,11 @@ class GestureControllerImpl implements GestureController {
       return null;
     }
 
-    this.pinching = false;
+    this.pinchKind = null;
     this.lastPinchPoint = null;
     this.pinchClickFired = false;
     this.swipeHistory = [];
+    this.scrollHistory = [];
 
     const [first, second] = samples;
     const distance = distance2d(first.palmCenter, second.palmCenter);
@@ -228,9 +281,9 @@ class GestureControllerImpl implements GestureController {
     };
   }
 
-  private updatePinchCursor(sample: HandSample, viewport: ViewportSize) {
-    const target = clampPoint(toScreenPoint(pointForPose(sample, 'pinch'), viewport), viewport);
-    if (!this.pinching || !this.lastPinchPoint) this.lastPinchPoint = this.cursor ?? target;
+  private updatePinchCursor(sample: HandSample, kind: PinchKind, viewport: ViewportSize) {
+    const target = clampPoint(toScreenPoint(pinchCenterForKind(sample, kind), viewport), viewport);
+    if (this.pinchKind !== kind || !this.lastPinchPoint) this.lastPinchPoint = this.cursor ?? target;
     this.cursor = this.lastPinchPoint;
   }
 
@@ -252,15 +305,15 @@ class GestureControllerImpl implements GestureController {
     };
   }
 
-  private updatePinch(nextPinching: boolean, now: number, intents: GestureIntent[]) {
-    if (nextPinching && !this.pinching) {
+  private updatePinch(nextPinchKind: PinchKind | null, now: number, intents: GestureIntent[]) {
+    if (nextPinchKind && this.pinchKind !== nextPinchKind) {
       this.pinchStartedAt = now;
       this.pinchClickFired = false;
       this.lastPinchPoint = this.lastPinchPoint ?? this.cursor;
       return 0;
     }
 
-    if (nextPinching) {
+    if (nextPinchKind) {
       this.lastPinchPoint = this.cursor ?? this.lastPinchPoint;
       const heldFor = now - this.pinchStartedAt;
       const progress = Math.min(1, heldFor / PINCH_HOLD_CLICK_MS);
@@ -271,18 +324,55 @@ class GestureControllerImpl implements GestureController {
         !this.pinchClickFired &&
         now - this.lastClickAt > CLICK_COOLDOWN_MS
       ) {
-        intents.push({ type: 'click', point });
+        intents.push({ type: nextPinchKind === 'middle' ? 'rightClick' : 'click', point });
         this.pinchClickFired = true;
         this.lastClickAt = now;
       }
       return progress;
     }
 
-    if (this.pinching) {
+    if (this.pinchKind) {
       this.lastPinchPoint = null;
       this.pinchClickFired = false;
     }
     return 0;
+  }
+
+  private updateScroll(
+    sample: HandSample,
+    pose: HandPose,
+    now: number,
+    viewport: ViewportSize,
+    intents: GestureIntent[],
+  ) {
+    if (pose !== 'scroll') {
+      this.scrollHistory = [];
+      return;
+    }
+
+    this.scrollHistory.push({ x: 1 - sample.scrollCenter.x, y: sample.scrollCenter.y, t: now });
+    this.scrollHistory = this.scrollHistory.filter(point => now - point.t <= SCROLL_WINDOW_MS);
+    if (this.scrollHistory.length < 3 || now - this.lastScrollAt <= SCROLL_COOLDOWN_MS) return;
+
+    const first = this.scrollHistory[0];
+    const last = this.scrollHistory[this.scrollHistory.length - 1];
+    const dt = (last.t - first.t) / 1000;
+    if (dt <= 0.05) return;
+
+    const dx = Math.abs(last.x - first.x);
+    const dy = last.y - first.y;
+    const velocity = dy / dt;
+    if (Math.abs(dy) < SCROLL_DISTANCE || Math.abs(velocity) < SCROLL_VELOCITY || dx > SCROLL_HORIZONTAL_LIMIT) {
+      return;
+    }
+
+    intents.push({
+      type: 'scroll',
+      dir: dy < 0 ? 'down' : 'up',
+      point: clampPoint(toScreenPoint(sample.scrollCenter, viewport), viewport),
+    });
+    this.lastScrollAt = now;
+    this.scrollHistory = [];
   }
 
   private updateSwipe(sample: HandSample, pose: HandPose, now: number, intents: GestureIntent[]) {
@@ -313,13 +403,20 @@ class GestureControllerImpl implements GestureController {
   }
 }
 
-function statusForPose(pose: HandPose, pinchProgress: number, pinchClickFired: boolean) {
+function statusForPose(
+  pose: HandPose,
+  pinchProgress: number,
+  pinchClickFired: boolean,
+  pinchKind: PinchKind | null,
+) {
   if (pose === 'point') return 'Point: aim';
   if (pose === 'pinch') {
-    if (pinchClickFired) return 'Clicked - release pinch';
-    if (pinchProgress > 0) return `Hold pinch ${Math.round(pinchProgress * 100)}%`;
-    return 'Hold pinch to click';
+    const action = pinchKind === 'middle' ? 'right-click' : 'click';
+    if (pinchClickFired) return `${action === 'right-click' ? 'Right-clicked' : 'Clicked'} - release pinch`;
+    if (pinchProgress > 0) return `Hold ${action} ${Math.round(pinchProgress * 100)}%`;
+    return `Hold pinch to ${action}`;
   }
+  if (pose === 'scroll') return 'Two-finger swipe: scroll';
   if (pose === 'open') return 'Open palm: swipe left or right';
   if (pose === 'fist') return 'Fist: paused';
   return 'Relax hand or point';

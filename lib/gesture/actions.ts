@@ -1,6 +1,7 @@
 import type { ScreenPoint } from './classifier';
 
 export type GestureSwipeDirection = 'left' | 'right';
+export type GestureScrollDirection = 'up' | 'down';
 
 export const GESTURE_SCALE_MIN = 0.85;
 export const GESTURE_SCALE_MAX = 1.35;
@@ -15,21 +16,30 @@ function targetAt(point: ScreenPoint) {
   return document.elementFromPoint(point.x, point.y);
 }
 
-function mouseInit(point: ScreenPoint): MouseEventInit {
+function mouseInit(point: ScreenPoint, button: 0 | 2 = 0, buttons = button === 2 ? 2 : 1): MouseEventInit {
   return {
     bubbles: true,
     cancelable: true,
     clientX: point.x,
     clientY: point.y,
-    button: 0,
-    buttons: 1,
+    button,
+    buttons,
   };
+}
+
+function nearestScrollable(start: Element | null) {
+  let node: Element | null = start;
+  while (node && node !== document.documentElement) {
+    if (node.scrollHeight > node.clientHeight + 1) return node;
+    node = node.parentElement;
+  }
+  return null;
 }
 
 export function dispatchGestureHover(point: ScreenPoint) {
   const target = targetAt(point);
   if (!target) return;
-  target.dispatchEvent(new MouseEvent('mousemove', mouseInit(point)));
+  target.dispatchEvent(new MouseEvent('mousemove', mouseInit(point, 0, 0)));
 }
 
 export function dispatchGestureClick(point: ScreenPoint) {
@@ -50,6 +60,30 @@ export function dispatchGestureClick(point: ScreenPoint) {
   target.dispatchEvent(new MouseEvent('mousedown', mouseInit(point)));
   target.dispatchEvent(new MouseEvent('mouseup', { ...mouseInit(point), buttons: 0 }));
   target.dispatchEvent(new MouseEvent('click', { ...mouseInit(point), buttons: 0 }));
+}
+
+export function dispatchGestureRightClick(point: ScreenPoint) {
+  const target = targetAt(point);
+  if (!target) return;
+
+  target.dispatchEvent(new MouseEvent('mousedown', mouseInit(point, 2)));
+  target.dispatchEvent(new MouseEvent('mouseup', { ...mouseInit(point, 2), buttons: 0 }));
+  target.dispatchEvent(new MouseEvent('contextmenu', mouseInit(point, 2, 0)));
+}
+
+export function dispatchGestureScroll(dir: GestureScrollDirection, point: ScreenPoint) {
+  if (typeof window === 'undefined') return;
+
+  const amount = Math.round(window.innerHeight * 0.62) * (dir === 'down' ? 1 : -1);
+  const target = targetAt(point);
+  const scrollable = nearestScrollable(target instanceof Element ? target : null);
+  const behavior: ScrollBehavior = 'smooth';
+
+  if (scrollable) {
+    scrollable.scrollBy({ top: amount, behavior });
+  } else {
+    window.scrollBy({ top: amount, behavior });
+  }
 }
 
 export function dispatchGestureSwipe(dir: GestureSwipeDirection) {

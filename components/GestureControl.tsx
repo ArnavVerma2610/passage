@@ -5,6 +5,8 @@ import { useHandTracker } from '@/hooks/useHandTracker';
 import {
   dispatchGestureClick,
   dispatchGestureHover,
+  dispatchGestureRightClick,
+  dispatchGestureScroll,
   dispatchGestureSwipe,
 } from '@/lib/gesture/actions';
 import { createGestureController } from '@/lib/gesture/controller';
@@ -90,7 +92,9 @@ function CloseIcon({ size = 12 }: IconProps) {
 
 const GESTURE_LIST = [
   { name: 'Point', desc: 'Index finger only - move the cursor and hover targets.' },
-  { name: 'Pinch hold', desc: 'Touch thumb to index and hold - cursor freezes, then clicks.' },
+  { name: 'Pinch hold', desc: 'Thumb to index, hold 350ms - cursor freezes, then clicks.' },
+  { name: 'Middle pinch', desc: 'Thumb to middle finger, hold 350ms - right-clicks.' },
+  { name: 'Two-finger scroll', desc: 'Index + middle extended, swipe up or down - scrolls the page.' },
   { name: 'Open-palm swipe', desc: 'Open palm, swipe left or right - skip or save the deck card.' },
   { name: 'Two-palm zoom', desc: 'Show both palms, then move them apart or together - app zoom.' },
   { name: 'Fist', desc: 'Close your hand - pause cursor and actions.' },
@@ -105,9 +109,9 @@ function labelForPose(pose: HandPose) {
 function cursorStyleForPose(pose: HandPose) {
   if (pose === 'pinch') {
     return {
-      size: 22,
-      background: 'radial-gradient(circle at 35% 35%, rgba(106,156,106,0.95), rgba(106,156,106,0.25))',
-      shadow: '0 0 24px 6px rgba(106,156,106,0.35)',
+      size: 34,
+      background: '#fff',
+      shadow: '0 0 22px 4px rgba(255,255,255,0.34)',
     };
   }
   if (pose === 'zoom') {
@@ -204,6 +208,8 @@ export default function GestureControl() {
 
       for (const intent of output.intents) {
         if (intent.type === 'click') dispatchGestureClick(intent.point);
+        if (intent.type === 'rightClick') dispatchGestureRightClick(intent.point);
+        if (intent.type === 'scroll') dispatchGestureScroll(intent.dir, intent.point);
         if (intent.type === 'swipe') dispatchGestureSwipe(intent.dir);
         if (intent.type === 'scale') {
           scaleRef.current = intent.scale;
@@ -323,8 +329,8 @@ export default function GestureControl() {
           style={{
             left: cursor.x,
             top: cursor.y,
-            width: poseLabel === 'pinch' ? cursorStyle.size + 12 : cursorStyle.size,
-            height: poseLabel === 'pinch' ? cursorStyle.size + 12 : cursorStyle.size,
+            width: poseLabel === 'pinch' ? cursorStyle.size + 18 : cursorStyle.size,
+            height: poseLabel === 'pinch' ? cursorStyle.size + 18 : cursorStyle.size,
             transition: 'width 120ms ease, height 120ms ease, opacity 120ms ease',
           }}
         >
@@ -332,7 +338,9 @@ export default function GestureControl() {
             <div
               className="absolute inset-0 rounded-full"
               style={{
-                background: `conic-gradient(var(--c-success) ${pinchRingDeg}deg, rgba(255,255,255,0.12) ${pinchRingDeg}deg)`,
+                background: `conic-gradient(#fff ${pinchRingDeg}deg, rgba(255,255,255,0.16) ${pinchRingDeg}deg)`,
+                border: '1px solid rgba(255,255,255,0.95)',
+                mask: 'radial-gradient(circle, transparent calc(100% - 2px), #000 calc(100% - 1px))',
                 opacity: pinchProgress > 0 ? 0.95 : 0.45,
               }}
             />
@@ -344,7 +352,7 @@ export default function GestureControl() {
               height: cursorStyle.size,
               background: cursorStyle.background,
               boxShadow: cursorStyle.shadow,
-              mixBlendMode: 'difference',
+              mixBlendMode: poseLabel === 'pinch' ? 'normal' : 'difference',
             }}
           />
         </div>

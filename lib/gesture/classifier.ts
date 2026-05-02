@@ -19,7 +19,7 @@ export interface ViewportSize {
   height: number;
 }
 
-export type HandPose = 'none' | 'point' | 'pinch' | 'open' | 'fist' | 'relaxed' | 'zoom';
+export type HandPose = 'none' | 'point' | 'pinch' | 'scroll' | 'open' | 'fist' | 'relaxed' | 'zoom';
 
 export interface FingerState {
   index: boolean;
@@ -33,9 +33,13 @@ export interface HandSample {
   landmarks: NormalizedLandmark[];
   fingers: FingerState;
   pinchRatio: number;
+  middlePinchRatio: number;
   wrist: NormalizedLandmark;
   indexTip: NormalizedLandmark;
+  middleTip: NormalizedLandmark;
   pinchCenter: NormalizedPoint;
+  middlePinchCenter: NormalizedPoint;
+  scrollCenter: NormalizedPoint;
   palmCenter: NormalizedPoint;
 }
 
@@ -84,6 +88,7 @@ function fingerExtended(landmarks: NormalizedLandmark[], tipIdx: number, pipIdx:
 export function classifyHand(landmarks: NormalizedLandmark[]): HandSample {
   const wrist = landmarks[WRIST];
   const indexTip = landmarks[INDEX_TIP];
+  const middleTip = landmarks[MIDDLE_TIP];
   const thumbTip = landmarks[THUMB_TIP];
   const index = fingerExtended(landmarks, INDEX_TIP, INDEX_PIP);
   const middle = fingerExtended(landmarks, MIDDLE_TIP, MIDDLE_PIP);
@@ -103,9 +108,13 @@ export function classifyHand(landmarks: NormalizedLandmark[]): HandSample {
       extendedCount: [index, middle, ring, pinky].filter(Boolean).length,
     },
     pinchRatio: distance2d(thumbTip, indexTip) / palmScale,
+    middlePinchRatio: distance2d(thumbTip, middleTip) / palmScale,
     wrist,
     indexTip,
+    middleTip,
     pinchCenter: midpoint(thumbTip, indexTip),
+    middlePinchCenter: midpoint(thumbTip, middleTip),
+    scrollCenter: midpoint(indexTip, middleTip),
     palmCenter: average([wrist, landmarks[INDEX_MCP], landmarks[MIDDLE_MCP], landmarks[PINKY_MCP]]),
   };
 }
@@ -114,6 +123,7 @@ export function poseForHand(sample: HandSample, pinching: boolean): HandPose {
   const { fingers } = sample;
   if (pinching) return 'pinch';
   if (fingers.index && !fingers.middle && !fingers.ring && !fingers.pinky) return 'point';
+  if (fingers.index && fingers.middle && !fingers.ring && !fingers.pinky) return 'scroll';
   if (fingers.extendedCount >= 3) return 'open';
   if (fingers.extendedCount === 0) return 'fist';
   return 'relaxed';
@@ -122,6 +132,7 @@ export function poseForHand(sample: HandSample, pinching: boolean): HandPose {
 export function pointForPose(sample: HandSample, pose: HandPose): NormalizedPoint {
   if (pose === 'pinch') return sample.pinchCenter;
   if (pose === 'point') return sample.indexTip;
+  if (pose === 'scroll') return sample.scrollCenter;
   return sample.palmCenter;
 }
 

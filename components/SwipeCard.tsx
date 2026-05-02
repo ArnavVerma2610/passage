@@ -183,16 +183,35 @@ export default function SwipeCard({ dest, passport, onSwipe }: SwipeCardProps) {
         <button
           type="button"
           onClick={() => void triggerExit('left')}
-          className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border border-faint bg-transparent text-lg text-dim"
+          aria-label="Skip"
+          className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border border-faint bg-transparent text-dim"
         >
-          ✕
+          <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+            <path
+              d="M5 5 L15 15 M15 5 L5 15"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </svg>
         </button>
         <button
           type="button"
           onClick={() => void triggerExit('right')}
-          className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border border-fg bg-transparent text-lg text-fg"
+          aria-label="Save"
+          className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border border-fg bg-transparent text-fg"
         >
-          →
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+            <path
+              d="M3.5 11 L17 11 M11 5 L17 11 L11 17"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+          </svg>
         </button>
       </div>
     </div>

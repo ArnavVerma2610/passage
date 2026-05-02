@@ -6,6 +6,8 @@ import TopBar from '@/components/TopBar';
 import BookingModal from '@/components/BookingModal';
 import FoodMenuModal, { priceDollars } from '@/components/FoodMenuModal';
 import ItineraryEditor from '@/components/ItineraryEditor';
+import MeshBeaconCard from '@/components/MeshBeaconCard';
+import GeoFeedCard from '@/components/GeoFeedCard';
 import { DESTINATIONS } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
 import { computeAmpScore, effectiveVisaProb, getTier, TIER_META } from '@/lib/amp';
@@ -26,7 +28,7 @@ export default function TripPage({ params }: TripPageProps) {
   const amp = usePassageStore(s => s.amp);
   const setSelectedDestination = usePassageStore(s => s.setSelectedDestination);
 
-  const [tab, setTab] = useState<'plan' | 'food' | 'book'>('plan');
+  const [tab, setTab] = useState<'plan' | 'food' | 'safety' | 'book'>('plan');
   const [bookingModal, setBookingModal] = useState<BookingType | null>(null);
   const [foodSpot, setFoodSpot] = useState<FoodSpot | null>(null);
 
@@ -85,17 +87,23 @@ export default function TripPage({ params }: TripPageProps) {
           </div>
         </div>
 
-        <div className="flex border-b border-ghost px-6">
-          {(['plan', 'food', 'book'] as const).map(t => (
+        <div className="flex overflow-x-auto border-b border-ghost px-6">
+          {(['plan', 'food', 'safety', 'book'] as const).map(t => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
-              className={`-mb-px cursor-pointer border-b border-t-0 border-l-0 border-r-0 bg-transparent px-4 py-3.5 font-mono text-xs uppercase tracking-[0.1em] ${
+              className={`-mb-px shrink-0 cursor-pointer border-b border-t-0 border-l-0 border-r-0 bg-transparent px-4 py-3.5 font-mono text-xs uppercase tracking-[0.1em] ${
                 tab === t ? 'border-fg text-fg' : 'border-transparent text-faint'
               }`}
             >
-              {t === 'plan' ? 'Itinerary' : t === 'food' ? 'Food spots' : 'Book'}
+              {t === 'plan'
+                ? 'Itinerary'
+                : t === 'food'
+                  ? 'Food spots'
+                  : t === 'safety'
+                    ? 'Safety'
+                    : 'Book'}
             </button>
           ))}
         </div>
@@ -103,6 +111,13 @@ export default function TripPage({ params }: TripPageProps) {
         {tab === 'plan' && (
           <div className="p-6">
             <ItineraryEditor dest={dest} />
+          </div>
+        )}
+
+        {tab === 'safety' && (
+          <div className="flex flex-col gap-3.5 p-6">
+            <MeshBeaconCard dest={dest} />
+            <GeoFeedCard dest={dest} />
           </div>
         )}
 

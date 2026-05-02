@@ -1,4 +1,11 @@
-import type { CountryAccess, Destination, ProfileSlide, Suborbital } from './types';
+import type {
+  CountryAccess,
+  Destination,
+  GeoEvent,
+  MeshBeacon,
+  ProfileSlide,
+  Suborbital,
+} from './types';
 
 // Mobility scores approximate the Henley Passport Index (0–100 normalized).
 // visaFree + restricted + impossible ≈ 195 destinations.
@@ -196,7 +203,7 @@ export const PROFILE_SLIDES: ProfileSlide[] = [
 // Seeds are written without the `suborbital` field; it's derived per
 // destination just below the literal so the data stays terse here.
 
-type DestinationSeed = Omit<Destination, 'travelPlan'> & {
+type DestinationSeed = Omit<Destination, 'travelPlan' | 'meshBeacon' | 'geoEvents'> & {
   travelPlan: Omit<Destination['travelPlan'], 'suborbital'>;
 };
 
@@ -1061,6 +1068,81 @@ const DESTINATION_SEEDS: DestinationSeed[] = [
           desc: 'Long drive back. The sky in your rear-view will stay with you.',
         },
       ],
+      itineraryVariants: {
+        classic: [
+          {
+            day: 1,
+            title: 'Ulaanbaatar → Tsetserleg',
+            desc: 'Drive west. Ovoo cairn stops. Sleep in town.',
+          },
+          {
+            day: 2,
+            title: 'Out to the springs',
+            desc: 'Dirt track to camp. Settle into your ger. First soak at sunset.',
+          },
+          {
+            day: 3,
+            title: 'Steppe day',
+            desc: 'Horse ride with the herder. Lunch with a family. Return to soak.',
+          },
+          {
+            day: 4,
+            title: 'Empty day',
+            desc: 'Walk the valley. Bathe twice. Watch the stars.',
+          },
+          { day: 5, title: 'Departure', desc: 'Long drive back to UB.' },
+        ],
+        adventure: [
+          {
+            day: 1,
+            title: 'UB → Karakorum',
+            desc: 'Drive to the old imperial capital. Erdene Zuu monastery on arrival.',
+          },
+          {
+            day: 2,
+            title: 'Cross the Khangai',
+            desc: '8-hour off-road push over the Khangai range. Wild camp at the top.',
+          },
+          {
+            day: 3,
+            title: 'Multi-day horseback',
+            desc: '40km horseback loop with the herders, sleeping in herder gers each night.',
+          },
+          {
+            day: 4,
+            title: 'Springs + Tsetserleg climb',
+            desc: 'Hot soak on return. Afternoon scramble up the Tsetserleg ridge for the valley view.',
+          },
+          {
+            day: 5,
+            title: 'Hard return',
+            desc: 'Single-day drive back to UB. Dusty, long, satisfying.',
+          },
+        ],
+        relaxed: [
+          {
+            day: 1,
+            title: 'UB → Tsetserleg slow',
+            desc: 'Long, easy drive with two stops for milk tea. Town hotel.',
+          },
+          {
+            day: 2,
+            title: 'Settle into the ger',
+            desc: 'Arrive by lunch. First soak. Long nap in the afternoon sun.',
+          },
+          {
+            day: 3,
+            title: 'Soak day',
+            desc: 'Bathe morning, noon, and dusk. Read between. Eat khorkhog for dinner.',
+          },
+          {
+            day: 4,
+            title: 'Family lunch',
+            desc: 'Pre-arranged lunch with a herder family. Return to camp for stars.',
+          },
+          { day: 5, title: 'Departure', desc: 'Slow drive back. Overnight in UB.' },
+        ],
+      },
     },
   },
   {
@@ -1210,6 +1292,73 @@ const DESTINATION_SEEDS: DestinationSeed[] = [
         },
         { day: 5, title: 'Return', desc: 'Morning ferry back to Tórshavn. Afternoon flight home.' },
       ],
+      itineraryVariants: {
+        classic: [
+          {
+            day: 1,
+            title: 'Arrive via Tórshavn',
+            desc: 'Vágar landing. Two undersea tunnels. Suðuroy ferry.',
+          },
+          {
+            day: 2,
+            title: 'Cliff hike',
+            desc: 'Western cliffs Hvalba → Sandvík. 14km, weather permitting.',
+          },
+          {
+            day: 3,
+            title: 'Sumba & the southern point',
+            desc: 'Cliff café drive. Stand at the southernmost rock.',
+          },
+          { day: 4, title: 'Inland day', desc: 'Sheep farm. Lamb dinner. Sleep early.' },
+          { day: 5, title: 'Return', desc: 'Morning ferry. Afternoon flight home.' },
+        ],
+        adventure: [
+          {
+            day: 1,
+            title: 'Tórshavn touch-down',
+            desc: 'Land Vágar, ferry across same day, gear check at Hvalba.',
+          },
+          {
+            day: 2,
+            title: 'Beinisvørð traverse',
+            desc: 'The full 22km coastal traverse over the highest sea cliff in Europe. Wind exposure all day.',
+          },
+          {
+            day: 3,
+            title: 'Sea cave kayak',
+            desc: 'Half-day sea kayak through the Hvalba sea caves. Cold water, rope-rescue briefing required.',
+          },
+          {
+            day: 4,
+            title: 'Lopra ridge scramble',
+            desc: 'Class-3 ridge from Lopra to Akrar. Helmet recommended.',
+          },
+          { day: 5, title: 'Hard return', desc: 'Dawn ferry. Direct to airport.' },
+        ],
+        relaxed: [
+          {
+            day: 1,
+            title: 'Easy crossing',
+            desc: 'Arrive Vágar, slow drive, evening ferry. Town hotel for the night.',
+          },
+          {
+            day: 2,
+            title: 'Tvøroyri amble',
+            desc: 'Bakery breakfast. Walk the harbor. Long lunch at the cliff café if open.',
+          },
+          {
+            day: 3,
+            title: 'Cliff café day',
+            desc: 'Drive south slow. Two hours at the southernmost café. Read.',
+          },
+          {
+            day: 4,
+            title: 'Farm dinner',
+            desc: 'Slow morning. Five-course lamb at Hov in the evening.',
+          },
+          { day: 5, title: 'Return', desc: 'Late ferry, late flight.' },
+        ],
+      },
     },
   },
   {
@@ -1362,6 +1511,77 @@ const DESTINATION_SEEDS: DestinationSeed[] = [
           desc: 'Drive back over the pass. Sleep in Leh. Fly out the next morning.',
         },
       ],
+      itineraryVariants: {
+        classic: [
+          {
+            day: 1,
+            title: 'Leh acclimatization',
+            desc: 'Walk slow. Drink water. Bazaar wander.',
+          },
+          { day: 2, title: 'Over Khardung La', desc: 'Long drive over the pass. Sleep in Nubra.' },
+          {
+            day: 3,
+            title: 'Into Turtuk',
+            desc: 'Final drive along the Shyok. Settle in. First apricot.',
+          },
+          {
+            day: 4,
+            title: 'Wander',
+            desc: 'Irrigation channels. Orchard lunch. Tiny museum.',
+          },
+          { day: 5, title: 'Departure', desc: 'Back over the pass. Leh overnight.' },
+        ],
+        adventure: [
+          {
+            day: 1,
+            title: 'Leh + Stok Kangri prep',
+            desc: 'Acclimatize hard. Equipment check at the base shop.',
+          },
+          {
+            day: 2,
+            title: 'Trek over Lasermo La',
+            desc: 'Cross the 5300m Lasermo pass on foot — high-camp at dusk.',
+          },
+          {
+            day: 3,
+            title: 'Descend to Turtuk',
+            desc: 'Down the long valley to Turtuk via Hunder camel sands.',
+          },
+          {
+            day: 4,
+            title: 'Saser Kangri viewpoint',
+            desc: 'Day climb to the western viewpoint of Saser Kangri (7672m).',
+          },
+          {
+            day: 5,
+            title: 'Hard exit',
+            desc: 'Long single-day drive back over the pass to Leh.',
+          },
+        ],
+        relaxed: [
+          {
+            day: 1,
+            title: 'Leh slow',
+            desc: 'Acclimatize properly. Bookshop. Apricot juice. Early bed.',
+          },
+          {
+            day: 2,
+            title: 'Easy drive to Nubra',
+            desc: 'Stop often. Diskit monastery. Lunch on the dunes.',
+          },
+          {
+            day: 3,
+            title: 'Into Turtuk',
+            desc: 'Slow afternoon drive. Tea on arrival.',
+          },
+          {
+            day: 4,
+            title: 'Two orchards',
+            desc: "Family lunch in one orchard. Family dinner in another. Don't move much.",
+          },
+          { day: 5, title: 'Departure', desc: 'Easy return. Two nights in Leh after.' },
+        ],
+      },
     },
   },
   {
@@ -1511,6 +1731,73 @@ const DESTINATION_SEEDS: DestinationSeed[] = [
           desc: 'Drive back to Tana. International flight late evening.',
         },
       ],
+      itineraryVariants: {
+        classic: [
+          {
+            day: 1,
+            title: 'Tana → Andasibe',
+            desc: 'Drive east. Chameleon farm stop. First night walk on arrival.',
+          },
+          {
+            day: 2,
+            title: 'Indri morning',
+            desc: '5am wake-up. The indri call will rearrange you.',
+          },
+          { day: 3, title: 'Mantadia full day', desc: 'Long hike. Six lemur species possible.' },
+          {
+            day: 4,
+            title: 'Vanilla & rest',
+            desc: 'Slow morning. Vanilla farm visit. Last night walk.',
+          },
+          { day: 5, title: 'Departure', desc: 'Drive back. Late international flight.' },
+        ],
+        adventure: [
+          {
+            day: 1,
+            title: 'Tana hard arrival',
+            desc: 'Land, drive, eat in the truck. Night walk same day.',
+          },
+          {
+            day: 2,
+            title: 'Mantadia 18km loop',
+            desc: 'Full deep-forest loop with the senior guide. Mud and machetes.',
+          },
+          {
+            day: 3,
+            title: 'Canopy traverse',
+            desc: 'Suspension-bridge canopy walk + ascent into the eastern primary forest.',
+          },
+          {
+            day: 4,
+            title: 'Lemur night camp',
+            desc: 'Camp inside the reserve. Two night walks, sleep in a hammock.',
+          },
+          { day: 5, title: 'Hard exit', desc: 'Long muddy return drive. Late flight.' },
+        ],
+        relaxed: [
+          {
+            day: 1,
+            title: 'Tana → lodge slow',
+            desc: 'Mid-morning departure. Stop for lunch. Arrive lodge late afternoon.',
+          },
+          {
+            day: 2,
+            title: 'Lodge lemur watch',
+            desc: 'Watch the resident lemur troop from the lodge deck. Easy short walk.',
+          },
+          {
+            day: 3,
+            title: 'Vanilla & village',
+            desc: 'Vanilla farm tasting. Andasibe village market. Easy.',
+          },
+          {
+            day: 4,
+            title: 'One short walk',
+            desc: 'Two-hour easy circuit only. Long lunch. Massage at the lodge.',
+          },
+          { day: 5, title: 'Departure', desc: 'Slow drive back. Hotel night in Tana.' },
+        ],
+      },
     },
   },
   {
@@ -1660,6 +1947,81 @@ const DESTINATION_SEEDS: DestinationSeed[] = [
           desc: 'Morning train to Samarkand or flight back via Tashkent.',
         },
       ],
+      itineraryVariants: {
+        classic: [
+          {
+            day: 1,
+            title: 'Arrive & wander',
+            desc: 'Settle. Walk Lyabi Hauz at dusk. Pilov dinner.',
+          },
+          {
+            day: 2,
+            title: 'Old city core',
+            desc: 'Ark, Bolo Hauz, Kalyan minaret. Courtyard lunch.',
+          },
+          { day: 3, title: 'Trading domes', desc: 'Walk all four. Knife shopping.' },
+          {
+            day: 4,
+            title: 'Sitorai Mokhi-Khosa',
+            desc: 'Summer palace day trip. Garden tea on return.',
+          },
+          {
+            day: 5,
+            title: 'Departure',
+            desc: 'Morning train to Samarkand or flight via Tashkent.',
+          },
+        ],
+        adventure: [
+          {
+            day: 1,
+            title: 'Dawn-arrival run',
+            desc: 'Land before dawn. Sunrise run through the empty old city. Breakfast at Lyabi Hauz.',
+          },
+          {
+            day: 2,
+            title: 'Caravanserai sleep',
+            desc: 'Day in the city. Night in a restored caravanserai cell with no electricity.',
+          },
+          {
+            day: 3,
+            title: 'Desert day trip',
+            desc: 'Drive 4hr into the Kyzylkum. Camel ride at sunset. Yurt overnight.',
+          },
+          {
+            day: 4,
+            title: 'Desert → Bukhara return',
+            desc: 'Long return drive. Late shashlik at the caravanserai grill.',
+          },
+          {
+            day: 5,
+            title: 'Hard exit',
+            desc: 'High-speed train Samarkand → Tashkent same day. Onward flight.',
+          },
+        ],
+        relaxed: [
+          {
+            day: 1,
+            title: 'Slow arrive',
+            desc: 'Late check-in. Tea at the madrasah café. Early dinner.',
+          },
+          { day: 2, title: 'Tea-house mornings', desc: 'Two long teas, one short walk per day.' },
+          {
+            day: 3,
+            title: 'Carpet workshop',
+            desc: 'Half-day at a working silk carpet workshop. Watch a knot tied.',
+          },
+          {
+            day: 4,
+            title: 'Hammam afternoon',
+            desc: 'Restored 16th-century bath house. Lunch + nap + bath.',
+          },
+          {
+            day: 5,
+            title: 'Departure',
+            desc: 'Slow morning. Late train to Tashkent. Onward flight next day.',
+          },
+        ],
+      },
     },
   },
   {
@@ -1816,6 +2178,77 @@ const DESTINATION_SEEDS: DestinationSeed[] = [
           desc: 'Drive back to Calafate. Maybe see Perito Moreno on the way.',
         },
       ],
+      itineraryVariants: {
+        classic: [
+          {
+            day: 1,
+            title: 'Calafate → El Chaltén',
+            desc: 'Bus to town. Easy walk to the orientation viewpoint.',
+          },
+          {
+            day: 2,
+            title: 'Cerro Torre',
+            desc: '20km out-and-back. Less crowded than Fitz Roy.',
+          },
+          { day: 3, title: 'Rest day', desc: 'Slow morning. Eat lamb. Sleep early.' },
+          {
+            day: 4,
+            title: 'Laguna de los Tres',
+            desc: '25km, 4am start, hopefully clear granite.',
+          },
+          { day: 5, title: 'Departure', desc: 'Drive back via Perito Moreno.' },
+        ],
+        adventure: [
+          {
+            day: 1,
+            title: 'Calafate fast-arrive',
+            desc: 'Land + drive same day. Gear check at La Vinería. Sleep early.',
+          },
+          {
+            day: 2,
+            title: 'Laguna de los Tres dawn',
+            desc: '25km in a single push, 3am start to hit the viewpoint at sunrise.',
+          },
+          {
+            day: 3,
+            title: 'Glacier ice walk',
+            desc: 'Crampons + harness. Half-day on the Viedma glacier with the climb school.',
+          },
+          {
+            day: 4,
+            title: 'Cerro Torre approach',
+            desc: 'High-camp walk-in toward the Cerro Torre base. Sleep at refugio.',
+          },
+          {
+            day: 5,
+            title: 'Hard exit',
+            desc: 'Descend at dawn. Drive direct to airport. Fly out same evening.',
+          },
+        ],
+        relaxed: [
+          {
+            day: 1,
+            title: 'Calafate slow',
+            desc: 'Late drive to El Chaltén. Bakery stop on the road.',
+          },
+          {
+            day: 2,
+            title: 'Mirador stroll',
+            desc: 'The 4km easy mirador trail only. Long lunch in town.',
+          },
+          {
+            day: 3,
+            title: 'Bakery + brewery',
+            desc: 'Two bakeries before noon, brewery in the afternoon.',
+          },
+          {
+            day: 4,
+            title: 'Half-day Chorrillo',
+            desc: '6km easy round-trip to Chorrillo del Salto waterfall. Nap after.',
+          },
+          { day: 5, title: 'Departure', desc: 'Slow drive back. Perito Moreno detour.' },
+        ],
+      },
     },
   },
   {
@@ -1960,6 +2393,77 @@ const DESTINATION_SEEDS: DestinationSeed[] = [
         },
         { day: 5, title: 'Departure', desc: 'Drive back to Paro for evening flight.' },
       ],
+      itineraryVariants: {
+        classic: [
+          {
+            day: 1,
+            title: 'Paro → Punakha',
+            desc: 'Dochula pass, 108 stupas, snow peaks if clear.',
+          },
+          { day: 2, title: 'The dzong', desc: 'Half-day at the dzong. Riverside lunch.' },
+          {
+            day: 3,
+            title: 'Bridge + Chimi Lhakhang',
+            desc: 'Walk both sides. Visit the fertility temple.',
+          },
+          {
+            day: 4,
+            title: 'Farmstay day',
+            desc: 'Lobesa farmhouse. Help with rice if season.',
+          },
+          { day: 5, title: 'Departure', desc: 'Drive back to Paro. Evening flight.' },
+        ],
+        adventure: [
+          {
+            day: 1,
+            title: 'Paro Tiger Nest',
+            desc: 'Land. Skip the hotel. Hike up to Taktsang same day. Sleep in Paro.',
+          },
+          {
+            day: 2,
+            title: 'Cross to Punakha hard',
+            desc: 'Dawn drive over Dochula. Same-day trek to Khamsum Yuelley Namgyal chorten.',
+          },
+          {
+            day: 3,
+            title: 'Multi-day trek begins',
+            desc: '3-day Gasa hot-spring trek starts. Camp at 3500m on night one.',
+          },
+          {
+            day: 4,
+            title: 'Trek + hot spring',
+            desc: 'Reach Gasa. Soak in the natural hot pools. Camp again.',
+          },
+          {
+            day: 5,
+            title: 'Trek out + exit',
+            desc: 'Descend at dawn. Drive direct to Paro for evening flight.',
+          },
+        ],
+        relaxed: [
+          {
+            day: 1,
+            title: 'Paro slow',
+            desc: 'Land. Sleep one night in Paro. Eat early. No pass crossing today.',
+          },
+          {
+            day: 2,
+            title: 'Easy drive to Punakha',
+            desc: 'Slow drive. Tea stop at Dochula. Settle into the boutique resort.',
+          },
+          { day: 3, title: 'Dzong + tea', desc: 'Dzong morning only. Garden tea afternoon.' },
+          {
+            day: 4,
+            title: 'Suspension bridge + nap',
+            desc: 'Bridge walk. Momo lunch. Massage at the resort.',
+          },
+          {
+            day: 5,
+            title: 'Departure',
+            desc: 'Easy drive back. Evening flight from Paro.',
+          },
+        ],
+      },
     },
   },
   {
@@ -2099,6 +2603,73 @@ const DESTINATION_SEEDS: DestinationSeed[] = [
         },
         { day: 5, title: 'Departure', desc: 'Drive back to Hadibo. Charter departs late evening.' },
       ],
+      itineraryVariants: {
+        classic: [
+          {
+            day: 1,
+            title: 'Arrive in Hadibo',
+            desc: 'Charter lands. First fish grill at the waterfront.',
+          },
+          {
+            day: 2,
+            title: 'Diksam plateau',
+            desc: 'Drive to the dragon-blood forest. Picnic. Sunset trees.',
+          },
+          {
+            day: 3,
+            title: 'Wadi Dirhur camp',
+            desc: 'Hike in. Freshwater pool swim. Sleep under stars.',
+          },
+          { day: 4, title: 'Detwah lagoon', desc: 'White sand. Lagoon swim. Lobster dinner.' },
+          { day: 5, title: 'Departure', desc: 'Back to Hadibo. Charter departs evening.' },
+        ],
+        adventure: [
+          {
+            day: 1,
+            title: 'Hadibo + dive prep',
+            desc: 'Arrive. Same-day boat reconnaissance to Dihamri marine reserve.',
+          },
+          {
+            day: 2,
+            title: 'Dihamri free-dive',
+            desc: 'Full day diving the Dihamri reefs. Wildlife: turtles, eagle rays, occasionally whale shark.',
+          },
+          {
+            day: 3,
+            title: 'Skand peak ascent',
+            desc: 'Climb the Skand massif (1500m). Steep, no markers.',
+          },
+          {
+            day: 4,
+            title: 'Wadi traverse trek',
+            desc: '14km traverse from Diksam down through three wadis to the coast. Camp on beach.',
+          },
+          {
+            day: 5,
+            title: 'Hard exit',
+            desc: 'Pre-dawn drive back to Hadibo. Charter out evening.',
+          },
+        ],
+        relaxed: [
+          {
+            day: 1,
+            title: 'Hadibo slow',
+            desc: 'Arrive. Settle into hotel. Dinner at the waterfront grill.',
+          },
+          {
+            day: 2,
+            title: 'Diksam half-day',
+            desc: 'Easy half-day picnic among dragon-blood trees. Back to Hadibo by evening.',
+          },
+          {
+            day: 3,
+            title: 'Detwah lagoon stay',
+            desc: 'Drive to Detwah, set camp. Swim. Read. Lobster.',
+          },
+          { day: 4, title: 'Lagoon day two', desc: 'Stay put. Long swims. Beach naps. Stars.' },
+          { day: 5, title: 'Departure', desc: 'Slow return drive. Evening charter.' },
+        ],
+      },
     },
   },
 ];
@@ -2278,10 +2849,568 @@ function suborbitalFor(id: string): Suborbital {
   };
 }
 
-export const DESTINATIONS: Destination[] = DESTINATION_SEEDS.map(seed => ({
-  ...seed,
-  travelPlan: {
-    ...seed.travelPlan,
-    suborbital: suborbitalFor(seed.id),
+// ── Safety profiles ───────────────────────────────────────────────────────
+// Mesh beacon density and geo-event feed are calibrated per destination
+// so dense urban hubs (Bukhara) read very different from end-of-the-road
+// outposts (Socotra). All values are simulated for the demo; in production
+// these would wire to live data feeds.
+
+interface SafetyProfile {
+  meshBeacon: MeshBeacon;
+  geoEvents: GeoEvent[];
+}
+
+const SAFETY_PROFILES: Record<string, SafetyProfile> = {
+  mestia: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz',
+      density: 7,
+      hopsToSAR: 3,
+      nearestRelay: 'Mestia heliport · 1.4km W',
+      coverage: 62,
+      lastPing: '38s ago',
+      knownTravelers: 4,
+    },
+    geoEvents: [
+      {
+        id: 'mestia-geo-1',
+        kind: 'weather',
+        severity: 'ADVISORY',
+        title: 'Latpari pass weather window closing',
+        desc: 'Cloud ceiling dropping below 3000m by 18:00. Trek leaders advised to descend.',
+        timestamp: '12 min ago',
+        predictedWindow: 'next 6h, 81% probability',
+        autoAction: 'Day 4 high-pass leg shifted +1 day',
+      },
+      {
+        id: 'mestia-geo-2',
+        kind: 'transport',
+        severity: 'WATCH',
+        title: 'Marshrutka delay — Kutaisi route',
+        desc: 'Rockfall at km 47 on the Zugdidi road. Single-lane, 90-min delays expected.',
+        timestamp: '1h ago',
+      },
+      {
+        id: 'mestia-geo-3',
+        kind: 'seismic',
+        severity: 'WATCH',
+        title: 'Caucasus micro-tremor cluster',
+        desc: 'Five M2.4–M3.1 events in last 18h, 40km north. Below structural threshold.',
+        timestamp: '4h ago',
+      },
+      {
+        id: 'mestia-geo-4',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'Tick-borne encephalitis low season',
+        desc: 'Routine advisory: long sleeves recommended on lower-elevation trails.',
+        timestamp: '2d ago',
+      },
+    ],
   },
-}));
+  harar: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz + sat-fallback',
+      density: 11,
+      hopsToSAR: 2,
+      nearestRelay: 'Harar regional ops · 600m S',
+      coverage: 71,
+      lastPing: '22s ago',
+      knownTravelers: 6,
+    },
+    geoEvents: [
+      {
+        id: 'harar-geo-1',
+        kind: 'civil',
+        severity: 'ADVISORY',
+        title: 'Curfew probability — eastern quarter',
+        desc: 'Khat market congestion + fuel-protest rumour. Two prior weekends ran 22:00 curfew.',
+        timestamp: '34 min ago',
+        predictedWindow: 'next 18h, 62% probability',
+        autoAction: 'Evening walking tour shifted to morning',
+      },
+      {
+        id: 'harar-geo-2',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'Cholera advisory — outer districts',
+        desc: 'WHO district-level alert. Old-city water supply unaffected; bottled-water guidance still applies.',
+        timestamp: '6h ago',
+      },
+      {
+        id: 'harar-geo-3',
+        kind: 'transport',
+        severity: 'CRITICAL',
+        title: 'Dire Dawa road — closed',
+        desc: 'Flash flooding on the A1 between Dire Dawa and Harar. Reopening estimated 14:00 tomorrow.',
+        timestamp: '2h ago',
+        predictedWindow: 'reopening 14:00, 73% probability',
+        autoAction: 'Inbound flight rerouted to Addis + private 4WD',
+      },
+      {
+        id: 'harar-geo-4',
+        kind: 'weather',
+        severity: 'WATCH',
+        title: 'Highland evening storms',
+        desc: 'Convective storms forecast 17:00–22:00 daily. Walled-city interior unaffected.',
+        timestamp: '8h ago',
+      },
+    ],
+  },
+  karakol: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz',
+      density: 9,
+      hopsToSAR: 4,
+      nearestRelay: 'Karakol KMS rescue · 2.1km E',
+      coverage: 58,
+      lastPing: '49s ago',
+      knownTravelers: 5,
+    },
+    geoEvents: [
+      {
+        id: 'karakol-geo-1',
+        kind: 'seismic',
+        severity: 'CRITICAL',
+        title: 'M4.6 aftershock cluster — Tien Shan',
+        desc: 'Ongoing aftershock sequence 60km SE. USGS forecasting M5+ within 72h at 41% probability.',
+        timestamp: '47 min ago',
+        predictedWindow: 'next 72h, 41% probability of M5+',
+        autoAction: 'Ala-Kul trek delayed 24h',
+      },
+      {
+        id: 'karakol-geo-2',
+        kind: 'weather',
+        severity: 'ADVISORY',
+        title: 'Snow line dropping to 3200m',
+        desc: 'Ala-Kul pass (3900m) currently above the snow line. Crampons required.',
+        timestamp: '3h ago',
+      },
+      {
+        id: 'karakol-geo-3',
+        kind: 'transport',
+        severity: 'WATCH',
+        title: 'Bishkek airport delay pattern',
+        desc: 'Average 90-min departure delay last 7 days. Buffer outbound transfers.',
+        timestamp: '1d ago',
+      },
+      {
+        id: 'karakol-geo-4',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'Altitude sickness reports rising',
+        desc: '14 reports of severe AMS at >3500m last week. Slow ascent recommended.',
+        timestamp: '12h ago',
+      },
+    ],
+  },
+  tsenkher: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz + sat-fallback',
+      density: 4,
+      hopsToSAR: 5,
+      nearestRelay: 'Tsetserleg ranger · 38km E',
+      coverage: 41,
+      lastPing: '2m 14s ago',
+      knownTravelers: 2,
+    },
+    geoEvents: [
+      {
+        id: 'tsenkher-geo-1',
+        kind: 'weather',
+        severity: 'ADVISORY',
+        title: 'Steppe wind storm — incoming',
+        desc: 'Sustained 60kph gusts forecast 04:00–11:00. Camp anchoring recommended.',
+        timestamp: '5h ago',
+        predictedWindow: 'next 12h, 88% probability',
+      },
+      {
+        id: 'tsenkher-geo-2',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'Marmot plague — seasonal',
+        desc: 'Three cases reported in Arkhangai aimag. Avoid contact with rodents.',
+        timestamp: '4d ago',
+      },
+      {
+        id: 'tsenkher-geo-3',
+        kind: 'transport',
+        severity: 'CRITICAL',
+        title: 'Spring melt — washout',
+        desc: 'Lower Tsenkher river bridge washed out overnight. 4WD detour adds 90 min.',
+        timestamp: '14h ago',
+        autoAction: 'Day 1 drive route shifted to northern bridge',
+      },
+      {
+        id: 'tsenkher-geo-4',
+        kind: 'civil',
+        severity: 'WATCH',
+        title: 'Ger camp permit re-verification',
+        desc: 'Routine annual permit check at provincial level; minor delays at the camp office possible.',
+        timestamp: '2d ago',
+      },
+    ],
+  },
+  suduroy: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz',
+      density: 6,
+      hopsToSAR: 2,
+      nearestRelay: 'Tvøroyri coastguard · 1.1km N',
+      coverage: 68,
+      lastPing: '31s ago',
+      knownTravelers: 3,
+    },
+    geoEvents: [
+      {
+        id: 'suduroy-geo-1',
+        kind: 'weather',
+        severity: 'CRITICAL',
+        title: 'Storm system — three fronts in 8h',
+        desc: 'NOAA tracking: storm Kári, secondary trough, and post-frontal squall band. Cliffs unsafe.',
+        timestamp: '2h ago',
+        predictedWindow: 'next 8h, 94% probability',
+        autoAction: 'Cliff hike postponed; museum day inserted',
+      },
+      {
+        id: 'suduroy-geo-2',
+        kind: 'transport',
+        severity: 'CRITICAL',
+        title: 'Suðuroy ferry — suspended',
+        desc: 'Smyril Line cancelled all sailings until 16:00 tomorrow due to swell.',
+        timestamp: '3h ago',
+      },
+      {
+        id: 'suduroy-geo-3',
+        kind: 'weather',
+        severity: 'ADVISORY',
+        title: 'Wind chill spike',
+        desc: 'Apparent temp dropping to -8°C overnight despite 2°C reading. Layer up.',
+        timestamp: '6h ago',
+      },
+      {
+        id: 'suduroy-geo-4',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'Hypothermia case at Sumba',
+        desc: 'One traveler treated yesterday at Sumba clinic. Reminder: emergency layers in pack.',
+        timestamp: '1d ago',
+      },
+    ],
+  },
+  turtuk: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz + sat-fallback',
+      density: 5,
+      hopsToSAR: 4,
+      nearestRelay: 'Indian Army Nubra post · 3.8km S',
+      coverage: 47,
+      lastPing: '1m 02s ago',
+      knownTravelers: 3,
+    },
+    geoEvents: [
+      {
+        id: 'turtuk-geo-1',
+        kind: 'civil',
+        severity: 'ADVISORY',
+        title: 'Inner Line Permit — re-verification',
+        desc: 'Border police running random ILP checks at Khalsar checkpoint. Carry physical permit.',
+        timestamp: '4h ago',
+      },
+      {
+        id: 'turtuk-geo-2',
+        kind: 'transport',
+        severity: 'CRITICAL',
+        title: 'Khardung La pass — closed',
+        desc: 'Snow + rockfall has closed the pass until BRO clearance. ETA 18h.',
+        timestamp: '5h ago',
+        predictedWindow: 'reopening 06:00 tomorrow, 64% probability',
+        autoAction: 'Departure pushed +1 day',
+      },
+      {
+        id: 'turtuk-geo-3',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'AMS reports — Khardung crossing',
+        desc: 'Three travelers evacuated from the pass last week. Acclimatize 48h in Leh first.',
+        timestamp: '2d ago',
+      },
+      {
+        id: 'turtuk-geo-4',
+        kind: 'civil',
+        severity: 'WATCH',
+        title: 'LoC tension — routine',
+        desc: 'Cross-border firing reported 18km W. No civilian impact; routine military advisory.',
+        timestamp: '8h ago',
+      },
+    ],
+  },
+  andasibe: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz',
+      density: 8,
+      hopsToSAR: 3,
+      nearestRelay: 'Andasibe ranger station · 4.2km NE',
+      coverage: 54,
+      lastPing: '44s ago',
+      knownTravelers: 4,
+    },
+    geoEvents: [
+      {
+        id: 'andasibe-geo-1',
+        kind: 'weather',
+        severity: 'CRITICAL',
+        title: 'Cyclone Batsirai remnant — flood watch',
+        desc: 'Ex-cyclone trough delivering 180mm rain over 12h. Mantadia trail submerging.',
+        timestamp: '1h ago',
+        predictedWindow: 'next 18h, 85% probability of trail closure',
+        autoAction: 'Mantadia day swapped with vanilla farm visit',
+      },
+      {
+        id: 'andasibe-geo-2',
+        kind: 'health',
+        severity: 'ADVISORY',
+        title: 'Malaria activity — rising',
+        desc: 'Eastern lowlands seeing seasonal Plasmodium falciparum spike. Prophylaxis essential.',
+        timestamp: '6h ago',
+      },
+      {
+        id: 'andasibe-geo-3',
+        kind: 'transport',
+        severity: 'WATCH',
+        title: 'RN2 — washout risk',
+        desc: 'Two minor washouts already on the Tana–Andasibe road. Allow +2h buffer.',
+        timestamp: '12h ago',
+      },
+      {
+        id: 'andasibe-geo-4',
+        kind: 'civil',
+        severity: 'WATCH',
+        title: 'Fuel shortage — Tana area',
+        desc: 'Limited diesel supply causing rural taxi shortages. Pre-book transfers.',
+        timestamp: '1d ago',
+      },
+    ],
+  },
+  bukhara: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz + LTE-fallback',
+      density: 47,
+      hopsToSAR: 1,
+      nearestRelay: 'Bukhara tourist police · 240m E',
+      coverage: 92,
+      lastPing: '8s ago',
+      knownTravelers: 31,
+    },
+    geoEvents: [
+      {
+        id: 'bukhara-geo-1',
+        kind: 'civil',
+        severity: 'ADVISORY',
+        title: 'Festival surge — Lyabi Hauz',
+        desc: 'Silk-road festival opening tonight; expected crowds 18,000+. Traffic blocks until midnight.',
+        timestamp: '2h ago',
+        predictedWindow: 'next 12h, peak crowd 19:00–22:00',
+      },
+      {
+        id: 'bukhara-geo-2',
+        kind: 'weather',
+        severity: 'CRITICAL',
+        title: 'Heat advisory — 42°C peak',
+        desc: 'Surface temperatures forecast to hit 42°C 13:00–17:00. Old city interior 4°C cooler.',
+        timestamp: '4h ago',
+        predictedWindow: 'next 8h, certain',
+        autoAction: 'Walking tour shifted to early morning + post-sunset',
+      },
+      {
+        id: 'bukhara-geo-3',
+        kind: 'transport',
+        severity: 'WATCH',
+        title: 'Tashkent train — sold out',
+        desc: 'High-speed Afrosiyob fully booked on departure day. Auto-rebook attempted.',
+        timestamp: '3h ago',
+        autoAction: 'Backup ticket secured on standard service',
+      },
+      {
+        id: 'bukhara-geo-4',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'Heat exhaustion cases',
+        desc: 'Three tourist heat-exhaustion cases at Ark Fortress yesterday. Hydration critical.',
+        timestamp: '18h ago',
+      },
+    ],
+  },
+  elchalten: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz + sat-fallback',
+      density: 14,
+      hopsToSAR: 2,
+      nearestRelay: 'Comisión de Auxilio · 800m N',
+      coverage: 64,
+      lastPing: '19s ago',
+      knownTravelers: 9,
+    },
+    geoEvents: [
+      {
+        id: 'elchalten-geo-1',
+        kind: 'weather',
+        severity: 'ADVISORY',
+        title: 'Patagonian wind window opening',
+        desc: 'Rare 6-hour calm window forecast 04:00–10:00. Climbers consolidating to use it.',
+        timestamp: '3h ago',
+        predictedWindow: '04:00–10:00 tomorrow, 76% probability',
+      },
+      {
+        id: 'elchalten-geo-2',
+        kind: 'weather',
+        severity: 'CRITICAL',
+        title: 'Williwaw squalls — 110kph',
+        desc: 'Surface gusts forecast 110kph by afternoon. Above-treeline travel unsafe.',
+        timestamp: '5h ago',
+        predictedWindow: 'next 14h, 91% probability',
+        autoAction: 'Cerro Torre approach moved to morning slot',
+      },
+      {
+        id: 'elchalten-geo-3',
+        kind: 'transport',
+        severity: 'WATCH',
+        title: 'RN40 fuel shortage',
+        desc: 'Three of five gas stations on RN40 dry. Refuel in El Calafate before driving.',
+        timestamp: '14h ago',
+      },
+      {
+        id: 'elchalten-geo-4',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'Wind-chill exposure cases',
+        desc: 'Two trekkers treated for frostbite extremities at Laguna de los Tres last week.',
+        timestamp: '3d ago',
+      },
+    ],
+  },
+  punakha: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz',
+      density: 12,
+      hopsToSAR: 2,
+      nearestRelay: 'Punakha district hospital · 1.8km W',
+      coverage: 76,
+      lastPing: '26s ago',
+      knownTravelers: 7,
+    },
+    geoEvents: [
+      {
+        id: 'punakha-geo-1',
+        kind: 'civil',
+        severity: 'ADVISORY',
+        title: 'Punakha tshechu — festival surge',
+        desc: 'Three-day religious festival starts tomorrow. Dzong crowd 8,000+. Hotels full.',
+        timestamp: '6h ago',
+        predictedWindow: '3 days, certain',
+      },
+      {
+        id: 'punakha-geo-2',
+        kind: 'weather',
+        severity: 'WATCH',
+        title: 'Dochula pass cloud',
+        desc: 'Cloud cover at the pass; snow peaks not visible today. Drive still safe.',
+        timestamp: '4h ago',
+      },
+      {
+        id: 'punakha-geo-3',
+        kind: 'transport',
+        severity: 'ADVISORY',
+        title: 'Gasa road — landslide',
+        desc: 'Northern road to Gasa hot springs blocked. Affects extended treks only.',
+        timestamp: '1d ago',
+      },
+      {
+        id: 'punakha-geo-4',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'Routine altitude advisory',
+        desc: 'Punakha (1200m) safe. Travelers continuing to Bumthang should monitor AMS.',
+        timestamp: '5d ago',
+      },
+    ],
+  },
+  socotra: {
+    meshBeacon: {
+      protocol: 'LoRa-mesh 868MHz + sat-only',
+      density: 3,
+      hopsToSAR: 5,
+      nearestRelay: 'Hadibo Yemeni gov ops · 14km W',
+      coverage: 28,
+      lastPing: '4m 18s ago',
+      knownTravelers: 1,
+    },
+    geoEvents: [
+      {
+        id: 'socotra-geo-1',
+        kind: 'transport',
+        severity: 'CRITICAL',
+        title: 'Charter flight — weather hold',
+        desc: 'Khareef monsoon winds making Socotra strip unusable. Flights paused 48h+.',
+        timestamp: '8h ago',
+        predictedWindow: 'next 72h, 67% probability of continued hold',
+        autoAction: 'Outbound rebooked to Wednesday charter',
+      },
+      {
+        id: 'socotra-geo-2',
+        kind: 'weather',
+        severity: 'CRITICAL',
+        title: 'Khareef monsoon onset',
+        desc: 'Sustained 50kph SW wind, 90% humidity. Detwah lagoon swimming unsafe.',
+        timestamp: '12h ago',
+        predictedWindow: 'next 6 weeks, certain',
+      },
+      {
+        id: 'socotra-geo-3',
+        kind: 'civil',
+        severity: 'ADVISORY',
+        title: 'Tribal access — Diksam plateau',
+        desc: 'Routine tribal-elder permit fee renewal required. Guide will arrange.',
+        timestamp: '2d ago',
+      },
+      {
+        id: 'socotra-geo-4',
+        kind: 'health',
+        severity: 'WATCH',
+        title: 'No medevac availability',
+        desc: 'Nearest medevac aircraft based in Salalah, Oman. ETA 6h+ for serious incident.',
+        timestamp: '1w ago',
+      },
+    ],
+  },
+};
+
+const SAFETY_DEFAULT: SafetyProfile = {
+  meshBeacon: {
+    protocol: 'LoRa-mesh 868MHz',
+    density: 6,
+    hopsToSAR: 3,
+    nearestRelay: 'Regional ops · ~5km',
+    coverage: 50,
+    lastPing: '1m ago',
+    knownTravelers: 3,
+  },
+  geoEvents: [],
+};
+
+function safetyFor(id: string): SafetyProfile {
+  return SAFETY_PROFILES[id] ?? SAFETY_DEFAULT;
+}
+
+export const DESTINATIONS: Destination[] = DESTINATION_SEEDS.map(seed => {
+  const safety = safetyFor(seed.id);
+  return {
+    ...seed,
+    travelPlan: {
+      ...seed.travelPlan,
+      suborbital: suborbitalFor(seed.id),
+    },
+    meshBeacon: safety.meshBeacon,
+    geoEvents: safety.geoEvents,
+  };
+});

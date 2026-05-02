@@ -81,6 +81,36 @@ export interface TravelPlan {
   itineraryVariants?: Record<ItineraryStyle, ItineraryDay[]>;
 }
 
+// ── Safety: mesh beacon + geo feed ────────────────────────────────────────
+// Both are simulated for the demo. Mesh beacon describes the local
+// peer-mesh density a device joins on landing; geo events are a
+// rolling feed of destination-scoped advisories that a real backend
+// would stream from USGS / NOAA / ACLED / WHO etc.
+
+export interface MeshBeacon {
+  protocol: string; // e.g. "LoRa-mesh 868MHz"
+  density: number; // # of Passage devices currently in mesh range
+  hopsToSAR: number; // network hops to nearest SAR ops
+  nearestRelay: string; // e.g. "Andasibe ranger station · 4.2km NE"
+  coverage: number; // 0-100 % terrain coverage estimate
+  lastPing: string; // relative, e.g. "47s ago"
+  knownTravelers: number; // strangers passively reachable
+}
+
+export type GeoEventKind = 'seismic' | 'civil' | 'weather' | 'health' | 'transport';
+export type GeoEventSeverity = 'WATCH' | 'ADVISORY' | 'CRITICAL';
+
+export interface GeoEvent {
+  id: string;
+  kind: GeoEventKind;
+  severity: GeoEventSeverity;
+  title: string;
+  desc: string;
+  timestamp: string; // relative, e.g. "12 min ago"
+  predictedWindow?: string; // e.g. "next 6h, 78% probability"
+  autoAction?: string; // e.g. "Itinerary day 3 shifted +1 day"
+}
+
 export interface Destination {
   id: string;
   name: string;
@@ -101,6 +131,8 @@ export interface Destination {
   currency: string;
   flightHub: string;
   travelPlan: TravelPlan;
+  meshBeacon: MeshBeacon;
+  geoEvents: GeoEvent[];
 }
 
 export interface ProfileValues {

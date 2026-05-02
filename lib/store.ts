@@ -30,6 +30,8 @@ interface PassageStore {
   customItineraries: Record<string, ItineraryDay[]>;
   itineraryStyle: Record<string, ItineraryStyle>;
   discoverRound: number; // increments every time the deck is reset
+  meshBeaconArmed: Record<string, boolean>; // per-destination mesh beacon arm state
+  geoAutoReroute: Record<string, boolean>; // per-destination auto-reroute toggle
 
   // ── session ────────────────────────────────────────────────────────────────
   swipedDestinations: SwipedEntry[];
@@ -68,6 +70,9 @@ interface PassageStore {
   updateItineraryDay: (destId: string, dayIndex: number, patch: Partial<ItineraryDay>) => void;
   addItineraryDay: (destId: string, day: ItineraryDay) => void;
   removeItineraryDay: (destId: string, dayIndex: number) => void;
+
+  setMeshBeaconArmed: (destId: string, armed: boolean) => void;
+  setGeoAutoReroute: (destId: string, on: boolean) => void;
 }
 
 const DEFAULT_PROFILE: ProfileValues = {
@@ -105,6 +110,8 @@ export const usePassageStore = create<PassageStore>()(
       customItineraries: {},
       itineraryStyle: {},
       discoverRound: 0,
+      meshBeaconArmed: {},
+      geoAutoReroute: {},
       swipedDestinations: [],
       selectedDestination: null,
       activeTab: 'discover',
@@ -122,6 +129,8 @@ export const usePassageStore = create<PassageStore>()(
           swipedDestinations: [],
           customItineraries: {},
           itineraryStyle: {},
+          meshBeaconArmed: {},
+          geoAutoReroute: {},
         }),
 
       setIdentity: identity => set({ identity, passport: identity.passportCountry }),
@@ -178,6 +187,8 @@ export const usePassageStore = create<PassageStore>()(
           customItineraries: {},
           itineraryStyle: {},
           discoverRound: 0,
+          meshBeaconArmed: {},
+          geoAutoReroute: {},
         }),
 
       setItinerary: (destId, days) =>
@@ -215,6 +226,11 @@ export const usePassageStore = create<PassageStore>()(
           const next = current.filter((_, i) => i !== idx);
           return { customItineraries: { ...s.customItineraries, [destId]: renumberDays(next) } };
         }),
+
+      setMeshBeaconArmed: (destId, armed) =>
+        set(s => ({ meshBeaconArmed: { ...s.meshBeaconArmed, [destId]: armed } })),
+      setGeoAutoReroute: (destId, on) =>
+        set(s => ({ geoAutoReroute: { ...s.geoAutoReroute, [destId]: on } })),
     }),
     {
       name: 'passage-store',
@@ -232,6 +248,8 @@ export const usePassageStore = create<PassageStore>()(
         customItineraries: state.customItineraries,
         itineraryStyle: state.itineraryStyle,
         discoverRound: state.discoverRound,
+        meshBeaconArmed: state.meshBeaconArmed,
+        geoAutoReroute: state.geoAutoReroute,
       }),
       onRehydrateStorage: () => state => {
         state?.setHasHydrated(true);

@@ -47,9 +47,9 @@ async function createLandmarker(mp: TasksVisionModule, delegate: 'GPU' | 'CPU') 
     },
     runningMode: 'VIDEO',
     numHands: 2,
-    minHandDetectionConfidence: 0.58,
-    minHandPresenceConfidence: 0.58,
-    minTrackingConfidence: 0.58,
+    minHandDetectionConfidence: 0.45,
+    minHandPresenceConfidence: 0.45,
+    minTrackingConfidence: 0.45,
   });
 }
 

@@ -132,7 +132,7 @@ export function poseForHand(sample: HandSample, pinching: boolean): HandPose {
 export function pointForPose(sample: HandSample, pose: HandPose): NormalizedPoint {
   if (pose === 'pinch') return sample.pinchCenter;
   if (pose === 'point') return sample.indexTip;
-  if (pose === 'scroll') return sample.scrollCenter;
+  if (pose === 'scroll') return sample.indexTip;
   return sample.palmCenter;
 }
 

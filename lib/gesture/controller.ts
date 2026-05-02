@@ -51,7 +51,7 @@ interface SwipePoint {
 type PinchKind = 'index' | 'middle';
 
 const CURSOR_SMOOTHING = 0.58;
-const HAND_LOST_MS = 350;
+const HAND_LOST_MS = 850;
 const PINCH_HOLD_CLICK_MS = 350;
 const CLICK_COOLDOWN_MS = 260;
 const SWIPE_WINDOW_MS = 280;
@@ -60,10 +60,10 @@ const SWIPE_VELOCITY = 0.95;
 const SWIPE_VERTICAL_LIMIT = 0.14;
 const SWIPE_COOLDOWN_MS = 850;
 const SCROLL_WINDOW_MS = 320;
-const SCROLL_DISTANCE = 0.11;
-const SCROLL_VELOCITY = 0.65;
-const SCROLL_HORIZONTAL_LIMIT = 0.13;
-const SCROLL_COOLDOWN_MS = 360;
+const SCROLL_DISTANCE = 0.06;
+const SCROLL_VELOCITY = 0.32;
+const SCROLL_HORIZONTAL_LIMIT = 0.18;
+const SCROLL_COOLDOWN_MS = 280;
 const ZOOM_ARM_MS = 180;
 const ZOOM_DEADZONE = 0.025;
 const ZOOM_GAIN = 1.05;
@@ -314,11 +314,12 @@ class GestureControllerImpl implements GestureController {
   }
 
   private updateCursor(sample: HandSample, pose: HandPose, viewport: ViewportSize) {
-    if (pose !== 'point' && pose !== 'pinch' && pose !== 'scroll') {
+    if (!sample.fingers.index && pose !== 'point' && pose !== 'pinch' && pose !== 'scroll') {
       return;
     }
 
-    const target = clampPoint(toScreenPoint(pointForPose(sample, pose), viewport), viewport);
+    const targetPoint = sample.fingers.index ? sample.indexTip : pointForPose(sample, pose);
+    const target = clampPoint(toScreenPoint(targetPoint, viewport), viewport);
     if (!this.cursor) {
       this.cursor = target;
       return;
@@ -393,7 +394,7 @@ class GestureControllerImpl implements GestureController {
 
     intents.push({
       type: 'scroll',
-      dir: dy < 0 ? 'down' : 'up',
+      dir: dy < 0 ? 'up' : 'down',
       point: clampPoint(toScreenPoint(sample.scrollCenter, viewport), viewport),
     });
     this.lastScrollAt = now;

@@ -200,7 +200,7 @@ export default function GestureControl() {
 
       if (output.cursor) {
         setShowCursor(true);
-        if (output.pose === 'point' || output.pose === 'pinch') {
+        if (output.pose === 'point' || output.pose === 'pinch' || output.pose === 'scroll' || output.pose === 'relaxed') {
           lastGestureMoveAtRef.current = Date.now();
           dispatchGestureHover(output.cursor);
         }
@@ -236,7 +236,6 @@ export default function GestureControl() {
   const cursorStyle = cursorStyleForPose(poseLabel);
   const liveStatus = statusMsg ?? actionMsg;
   const scalePct = Math.round(gestureScale * 100);
-  const pinchRingDeg = Math.round(pinchProgress * 360);
 
   return (
     <>
@@ -338,10 +337,8 @@ export default function GestureControl() {
             <div
               className="absolute inset-0 rounded-full"
               style={{
-                background: `conic-gradient(#fff ${pinchRingDeg}deg, rgba(255,255,255,0.16) ${pinchRingDeg}deg)`,
-                border: '1px solid rgba(255,255,255,0.95)',
-                mask: 'radial-gradient(circle, transparent calc(100% - 2px), #000 calc(100% - 1px))',
-                opacity: pinchProgress > 0 ? 0.95 : 0.45,
+                border: '2px solid rgba(255,255,255,0.95)',
+                opacity: 0.65 + pinchProgress * 0.35,
               }}
             />
           )}

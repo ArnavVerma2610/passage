@@ -90,7 +90,7 @@ function CloseIcon({ size = 12 }: IconProps) {
 
 const GESTURE_LIST = [
   { name: 'Point', desc: 'Index finger only - move the cursor and hover targets.' },
-  { name: 'Pinch click', desc: 'Touch thumb to index, then release - click at cursor.' },
+  { name: 'Pinch hold', desc: 'Touch thumb to index and hold - cursor freezes, then clicks.' },
   { name: 'Open-palm swipe', desc: 'Open palm, swipe left or right - skip or save the deck card.' },
   { name: 'Two-palm zoom', desc: 'Show both palms, then move them apart or together - app zoom.' },
   { name: 'Fist', desc: 'Close your hand - pause cursor and actions.' },
@@ -142,6 +142,7 @@ export default function GestureControl() {
   const [error, setError] = useState<string | null>(null);
   const [showCursor, setShowCursor] = useState(true);
   const [handsSeen, setHandsSeen] = useState(0);
+  const [pinchProgress, setPinchProgress] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [controller] = useState(createGestureController);
@@ -191,6 +192,7 @@ export default function GestureControl() {
       setPoseLabel(output.pose);
       setActionMsg(output.status);
       setHandsSeen(output.hands);
+      setPinchProgress(output.pinchProgress);
 
       if (output.cursor) {
         setShowCursor(true);
@@ -214,6 +216,7 @@ export default function GestureControl() {
         setCursor(null);
         setPoseLabel('none');
         setHandsSeen(0);
+        setPinchProgress(0);
         setActionMsg('No hand');
       }
       setStatusMsg(status);
@@ -227,6 +230,7 @@ export default function GestureControl() {
   const cursorStyle = cursorStyleForPose(poseLabel);
   const liveStatus = statusMsg ?? actionMsg;
   const scalePct = Math.round(gestureScale * 100);
+  const pinchRingDeg = Math.round(pinchProgress * 360);
 
   return (
     <>
@@ -319,14 +323,31 @@ export default function GestureControl() {
           style={{
             left: cursor.x,
             top: cursor.y,
-            width: cursorStyle.size,
-            height: cursorStyle.size,
-            background: cursorStyle.background,
-            boxShadow: cursorStyle.shadow,
-            mixBlendMode: 'difference',
+            width: poseLabel === 'pinch' ? cursorStyle.size + 12 : cursorStyle.size,
+            height: poseLabel === 'pinch' ? cursorStyle.size + 12 : cursorStyle.size,
             transition: 'width 120ms ease, height 120ms ease, opacity 120ms ease',
           }}
-        />
+        >
+          {poseLabel === 'pinch' && (
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: `conic-gradient(var(--c-success) ${pinchRingDeg}deg, rgba(255,255,255,0.12) ${pinchRingDeg}deg)`,
+                opacity: pinchProgress > 0 ? 0.95 : 0.45,
+              }}
+            />
+          )}
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              width: cursorStyle.size,
+              height: cursorStyle.size,
+              background: cursorStyle.background,
+              boxShadow: cursorStyle.shadow,
+              mixBlendMode: 'difference',
+            }}
+          />
+        </div>
       )}
 
       <div

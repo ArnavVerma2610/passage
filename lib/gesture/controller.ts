@@ -31,6 +31,7 @@ export interface GestureControllerOutput {
   pose: HandPose;
   status: string;
   hands: number;
+  pinchProgress: number;
   intents: GestureIntent[];
 }
 
@@ -47,8 +48,7 @@ interface SwipePoint {
 
 const CURSOR_SMOOTHING = 0.58;
 const HAND_LOST_MS = 350;
-const PINCH_CLICK_MIN_MS = 45;
-const PINCH_CLICK_MAX_MS = 650;
+const PINCH_HOLD_CLICK_MS = 280;
 const CLICK_COOLDOWN_MS = 260;
 const SWIPE_WINDOW_MS = 280;
 const SWIPE_DISTANCE = 0.17;
@@ -92,6 +92,7 @@ class GestureControllerImpl implements GestureController {
   private pinching = false;
   private pinchStartedAt = 0;
   private lastPinchPoint: ScreenPoint | null = null;
+  private pinchClickFired = false;
   private lastClickAt = 0;
   private lastHandSeenAt = 0;
   private swipeHistory: SwipePoint[] = [];
@@ -106,6 +107,7 @@ class GestureControllerImpl implements GestureController {
     this.pinching = false;
     this.pinchStartedAt = 0;
     this.lastPinchPoint = null;
+    this.pinchClickFired = false;
     this.lastHandSeenAt = 0;
     this.swipeHistory = [];
     this.zoomCandidateStartedAt = 0;
@@ -120,11 +122,20 @@ class GestureControllerImpl implements GestureController {
 
     if (samples.length === 0) {
       this.pinching = false;
+      this.lastPinchPoint = null;
+      this.pinchClickFired = false;
       this.swipeHistory = [];
       this.zoomCandidateStartedAt = 0;
       this.zooming = false;
       if (!this.lastHandSeenAt || frame.now - this.lastHandSeenAt > HAND_LOST_MS) this.cursor = null;
-      return { cursor: this.cursor, pose: 'none', status: 'No hand', hands: 0, intents };
+      return {
+        cursor: this.cursor,
+        pose: 'none',
+        status: 'No hand',
+        hands: 0,
+        pinchProgress: 0,
+        intents,
+      };
     }
 
     this.lastHandSeenAt = frame.now;
@@ -138,22 +149,31 @@ class GestureControllerImpl implements GestureController {
     if (nextPinching && primary.pinchRatio > PINCH_OFF_RATIO) nextPinching = false;
 
     const pose = poseForHand(primary, nextPinching);
-    this.updateCursor(primary, pose, frame.viewport);
-    this.updatePinch(nextPinching, frame.now, intents);
+    if (nextPinching) this.updatePinchCursor(primary, frame.viewport);
+    else this.updateCursor(primary, pose, frame.viewport);
+    const pinchProgress = this.updatePinch(nextPinching, frame.now, intents);
     this.updateSwipe(primary, pose, frame.now, intents);
     this.pinching = nextPinching;
 
     if (pose === 'fist') {
       this.cursor = null;
       this.swipeHistory = [];
-      return { cursor: null, pose, status: 'Fist: paused', hands: samples.length, intents };
+      return {
+        cursor: null,
+        pose,
+        status: 'Fist: paused',
+        hands: samples.length,
+        pinchProgress: 0,
+        intents,
+      };
     }
 
     return {
       cursor: this.cursor,
       pose,
-      status: statusForPose(pose),
+      status: statusForPose(pose, pinchProgress, this.pinchClickFired),
       hands: samples.length,
+      pinchProgress,
       intents,
     };
   }
@@ -170,6 +190,8 @@ class GestureControllerImpl implements GestureController {
     }
 
     this.pinching = false;
+    this.lastPinchPoint = null;
+    this.pinchClickFired = false;
     this.swipeHistory = [];
 
     const [first, second] = samples;
@@ -201,8 +223,15 @@ class GestureControllerImpl implements GestureController {
       pose: 'zoom',
       status: this.zooming ? `Zoom ${Math.round(scale * 100)}%` : 'Hold both palms to zoom',
       hands: samples.length,
+      pinchProgress: 0,
       intents,
     };
+  }
+
+  private updatePinchCursor(sample: HandSample, viewport: ViewportSize) {
+    const target = clampPoint(toScreenPoint(pointForPose(sample, 'pinch'), viewport), viewport);
+    if (!this.pinching || !this.lastPinchPoint) this.lastPinchPoint = this.cursor ?? target;
+    this.cursor = this.lastPinchPoint;
   }
 
   private updateCursor(sample: HandSample, pose: HandPose, viewport: ViewportSize) {
@@ -226,29 +255,34 @@ class GestureControllerImpl implements GestureController {
   private updatePinch(nextPinching: boolean, now: number, intents: GestureIntent[]) {
     if (nextPinching && !this.pinching) {
       this.pinchStartedAt = now;
-      this.lastPinchPoint = this.cursor;
-      return;
+      this.pinchClickFired = false;
+      this.lastPinchPoint = this.lastPinchPoint ?? this.cursor;
+      return 0;
     }
 
     if (nextPinching) {
       this.lastPinchPoint = this.cursor ?? this.lastPinchPoint;
-      return;
+      const heldFor = now - this.pinchStartedAt;
+      const progress = Math.min(1, heldFor / PINCH_HOLD_CLICK_MS);
+      const point = this.lastPinchPoint;
+      if (
+        point &&
+        progress >= 1 &&
+        !this.pinchClickFired &&
+        now - this.lastClickAt > CLICK_COOLDOWN_MS
+      ) {
+        intents.push({ type: 'click', point });
+        this.pinchClickFired = true;
+        this.lastClickAt = now;
+      }
+      return progress;
     }
 
-    if (!this.pinching) return;
-
-    const heldFor = now - this.pinchStartedAt;
-    const point = this.lastPinchPoint ?? this.cursor;
-    if (
-      point &&
-      heldFor >= PINCH_CLICK_MIN_MS &&
-      heldFor <= PINCH_CLICK_MAX_MS &&
-      now - this.lastClickAt > CLICK_COOLDOWN_MS
-    ) {
-      intents.push({ type: 'click', point });
-      this.lastClickAt = now;
+    if (this.pinching) {
+      this.lastPinchPoint = null;
+      this.pinchClickFired = false;
     }
-    this.lastPinchPoint = null;
+    return 0;
   }
 
   private updateSwipe(sample: HandSample, pose: HandPose, now: number, intents: GestureIntent[]) {
@@ -279,9 +313,13 @@ class GestureControllerImpl implements GestureController {
   }
 }
 
-function statusForPose(pose: HandPose) {
+function statusForPose(pose: HandPose, pinchProgress: number, pinchClickFired: boolean) {
   if (pose === 'point') return 'Point: aim';
-  if (pose === 'pinch') return 'Release pinch to click';
+  if (pose === 'pinch') {
+    if (pinchClickFired) return 'Clicked - release pinch';
+    if (pinchProgress > 0) return `Hold pinch ${Math.round(pinchProgress * 100)}%`;
+    return 'Hold pinch to click';
+  }
   if (pose === 'open') return 'Open palm: swipe left or right';
   if (pose === 'fist') return 'Fist: paused';
   return 'Relax hand or point';

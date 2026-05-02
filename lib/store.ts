@@ -37,6 +37,7 @@ interface PassageStore {
   gestureLegendOpen: boolean; // user expanded the gesture legend
 
   // ── session ────────────────────────────────────────────────────────────────
+  gestureScale: number;
   swipedDestinations: SwipedEntry[];
   selectedDestination: Destination | null;
   activeTab: string;
@@ -80,6 +81,7 @@ interface PassageStore {
   setGestureEnabled: (v: boolean) => void;
   setGesturePreviewHidden: (v: boolean) => void;
   setGestureLegendOpen: (v: boolean) => void;
+  setGestureScale: (v: number) => void;
 }
 
 const DEFAULT_PROFILE: ProfileValues = {
@@ -122,6 +124,7 @@ export const usePassageStore = create<PassageStore>()(
       gestureEnabled: false,
       gesturePreviewHidden: false,
       gestureLegendOpen: false,
+      gestureScale: 1,
       swipedDestinations: [],
       selectedDestination: null,
       activeTab: 'discover',
@@ -245,6 +248,7 @@ export const usePassageStore = create<PassageStore>()(
       setGestureEnabled: v => set({ gestureEnabled: v }),
       setGesturePreviewHidden: v => set({ gesturePreviewHidden: v }),
       setGestureLegendOpen: v => set({ gestureLegendOpen: v }),
+      setGestureScale: v => set({ gestureScale: v }),
     }),
     {
       name: 'passage-store',

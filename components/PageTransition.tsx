@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import BottomNav from './BottomNav';
 import SideNav from './SideNav';
 import FontSizeModal from './FontSizeModal';
+import { usePassageStore } from '@/lib/store';
 
 const NAV_ROOTS = ['/discover', '/trips', '/chat', '/profile', '/trip'];
 const isDetail = (p: string) => p.startsWith('/trip/');
@@ -20,6 +21,25 @@ function enterTransition(curr: string, prev: string): Transition {
   return isDetail(curr) || isDetail(prev)
     ? { type: 'spring', stiffness: 400, damping: 36 }
     : { duration: 0.14, ease: 'easeOut' };
+}
+
+function GestureScaleFrame({ children }: { children: React.ReactNode }) {
+  const scale = usePassageStore(s => s.gestureScale);
+
+  if (Math.abs(scale - 1) < 0.01) return <>{children}</>;
+
+  return (
+    <div
+      style={{
+        transform: `scale(${scale})`,
+        transformOrigin: 'top center',
+        width: `${100 / scale}%`,
+        margin: '0 auto',
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export default function PageTransition({ children }: { children: React.ReactNode }) {
@@ -57,7 +77,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
                 exit={{ opacity: 0 }}
                 transition={transition}
               >
-                {children}
+                <GestureScaleFrame>{children}</GestureScaleFrame>
               </motion.div>
             </AnimatePresence>
           </main>
@@ -71,7 +91,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
             exit={{ opacity: 0 }}
             transition={transition}
           >
-            {children}
+            <GestureScaleFrame>{children}</GestureScaleFrame>
           </motion.div>
         </AnimatePresence>
       )}

@@ -1,8 +1,10 @@
 'use client';
 
+import { useCallback, useEffect } from 'react';
 import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { usePassageStore } from '@/lib/store';
 import { computeAmpScore, effectiveVisaProb, getTier, TIER_META } from '@/lib/amp';
+import { subscribeGestureSwipe } from '@/lib/gesture/actions';
 import type { Destination } from '@/lib/types';
 
 const DIST_THRESHOLD = 100;
@@ -29,10 +31,12 @@ export default function SwipeCard({ dest, passport, onSwipe }: SwipeCardProps) {
   const meta = TIER_META[tier];
   const prob = effectiveVisaProb(baseProb, tier);
 
-  const triggerExit = async (dir: 'left' | 'right') => {
+  const triggerExit = useCallback(async (dir: 'left' | 'right') => {
     await animate(x, dir === 'right' ? 640 : -640, EXIT_SPRING);
     onSwipe(dir);
-  };
+  }, [onSwipe, x]);
+
+  useEffect(() => subscribeGestureSwipe(dir => void triggerExit(dir)), [triggerExit]);
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     const { offset, velocity } = info;

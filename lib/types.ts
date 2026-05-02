@@ -40,6 +40,24 @@ export interface Flight {
   price: string;
 }
 
+export interface Suborbital {
+  origin: string;
+  originCode: string;
+  arrival: string;
+  arrivalCode: string;
+  vehicle: string;
+  operator: string;
+  duration: string;
+  peakG: string;
+  fastingWindow: string;
+  medicalGate: string;
+  carbonOffset: string;
+  price: string;
+  windowsPerDay: number;
+  onward: string;
+  reentryCorridor: string;
+}
+
 export interface Hotel {
   name: string;
   type: string;
@@ -57,6 +75,7 @@ export type ItineraryStyle = 'classic' | 'adventure' | 'relaxed';
 
 export interface TravelPlan {
   flights: Flight;
+  suborbital: Suborbital;
   hotels: Hotel[];
   itinerary: ItineraryDay[];
   itineraryVariants?: Record<ItineraryStyle, ItineraryDay[]>;
@@ -120,7 +139,7 @@ export interface Identity {
   documentVerified: boolean; // demo: always true after submit
 }
 
-export type BookingType = 'flight' | 'hotel' | 'visa';
+export type BookingType = 'flight' | 'suborbital' | 'hotel' | 'visa';
 
 export interface BookingResultFlight {
   from: string;
@@ -130,6 +149,21 @@ export interface BookingResultFlight {
   price: string;
   seat: string;
   class: string;
+}
+
+export interface BookingResultSuborbital {
+  vehicle: string;
+  operator: string;
+  flightNumber: string;
+  origin: string;
+  arrival: string;
+  duration: string;
+  peakG: string;
+  cabin: string;
+  berth: string;
+  launchWindow: string;
+  reentryCorridor: string;
+  price: string;
 }
 
 export interface BookingResultHotel {
@@ -152,5 +186,5 @@ export interface BookingResult {
   bookingRef: string;
   issuedAt: string;
   type: BookingType;
-  details: BookingResultFlight | BookingResultHotel | BookingResultVisa;
+  details: BookingResultFlight | BookingResultSuborbital | BookingResultHotel | BookingResultVisa;
 }

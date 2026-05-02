@@ -1,4 +1,4 @@
-import type { CountryAccess, Destination, ProfileSlide } from './types';
+import type { CountryAccess, Destination, ProfileSlide, Suborbital } from './types';
 
 // Mobility scores approximate the Henley Passport Index (0–100 normalized).
 // visaFree + restricted + impossible ≈ 195 destinations.
@@ -193,8 +193,14 @@ export const PROFILE_SLIDES: ProfileSlide[] = [
 ];
 
 // ── Destinations ──────────────────────────────────────────────────────────
+// Seeds are written without the `suborbital` field; it's derived per
+// destination just below the literal so the data stays terse here.
 
-export const DESTINATIONS: Destination[] = [
+type DestinationSeed = Omit<Destination, 'travelPlan'> & {
+  travelPlan: Omit<Destination['travelPlan'], 'suborbital'>;
+};
+
+const DESTINATION_SEEDS: DestinationSeed[] = [
   {
     id: 'mestia',
     name: 'Mestia',
@@ -2096,3 +2102,186 @@ export const DESTINATIONS: Destination[] = [
     },
   },
 ];
+
+// ── Suborbital routing ─────────────────────────────────────────────────────
+// In 2050, point-to-point suborbital is routine. Each route hops from
+// Hyderabad Orbital (HYD-O) to the closest spaceport and tacks on an eVTOL
+// or rail leg for the last mile. Profiles are derived per destination so
+// the data stays in sync with the underlying DESTINATION_SEEDS list.
+
+interface SuborbitalProfile {
+  arrival: string;
+  arrivalCode: string;
+  vehicle: string;
+  operator: string;
+  duration: string;
+  price: string;
+  onward: string;
+  reentryCorridor: string;
+  windowsPerDay: number;
+}
+
+const SUBORBITAL_PROFILES: Record<string, SuborbitalProfile> = {
+  mestia: {
+    arrival: 'Geneva Orbital',
+    arrivalCode: 'GVA-O',
+    vehicle: 'Starship Mk-VI',
+    operator: 'SpaceX Lattice',
+    duration: '34 min',
+    price: '₹16,40,000',
+    onward: '+ 110-min eVTOL · Geneva → Mestia',
+    reentryCorridor: 'ALP-2 corridor',
+    windowsPerDay: 4,
+  },
+  harar: {
+    arrival: 'Mombasa Orbital',
+    arrivalCode: 'MBA-O',
+    vehicle: 'Starship Mk-VI',
+    operator: 'SpaceX Lattice',
+    duration: '28 min',
+    price: '₹14,80,000',
+    onward: '+ 95-min eVTOL · Mombasa → Harar',
+    reentryCorridor: 'EAF-1 corridor',
+    windowsPerDay: 5,
+  },
+  karakol: {
+    arrival: 'Almaty Orbital',
+    arrivalCode: 'ALA-O',
+    vehicle: 'Skyhopper-3',
+    operator: 'Roscosmos Continental',
+    duration: '24 min',
+    price: '₹12,90,000',
+    onward: '+ 70-min eVTOL · Almaty → Karakol',
+    reentryCorridor: 'TIA-4 corridor',
+    windowsPerDay: 6,
+  },
+  tsenkher: {
+    arrival: 'Ulaanbaatar Orbital',
+    arrivalCode: 'UBN-O',
+    vehicle: 'Skyhopper-3',
+    operator: 'Roscosmos Continental',
+    duration: '31 min',
+    price: '₹15,20,000',
+    onward: '+ 8-hr ground convoy · UB → Tsenkher (no eVTOL clearance)',
+    reentryCorridor: 'GOB-1 corridor',
+    windowsPerDay: 3,
+  },
+  suduroy: {
+    arrival: 'Reykjavík Orbital',
+    arrivalCode: 'REK-O',
+    vehicle: 'Crescent Orbital-9',
+    operator: 'Aurora Suborbital',
+    duration: '41 min',
+    price: '₹19,80,000',
+    onward: '+ 55-min eVTOL · Reykjavík → Suðuroy',
+    reentryCorridor: 'NAT-3 corridor',
+    windowsPerDay: 3,
+  },
+  turtuk: {
+    arrival: 'Leh Orbital',
+    arrivalCode: 'LEH-O',
+    vehicle: 'Skyhopper-3',
+    operator: 'ISRO Sub-O',
+    duration: '18 min',
+    price: '₹9,60,000',
+    onward: '+ 4-hr armoured convoy · Leh → Turtuk (LoC clearance)',
+    reentryCorridor: 'KAR-1 corridor',
+    windowsPerDay: 8,
+  },
+  andasibe: {
+    arrival: 'Mombasa Orbital',
+    arrivalCode: 'MBA-O',
+    vehicle: 'Starship Mk-VI',
+    operator: 'SpaceX Lattice',
+    duration: '32 min',
+    price: '₹17,60,000',
+    onward: '+ 60-min eVTOL · Tana → Andasibe',
+    reentryCorridor: 'IND-2 corridor',
+    windowsPerDay: 4,
+  },
+  bukhara: {
+    arrival: 'Almaty Orbital',
+    arrivalCode: 'ALA-O',
+    vehicle: 'Skyhopper-3',
+    operator: 'Roscosmos Continental',
+    duration: '22 min',
+    price: '₹11,40,000',
+    onward: '+ 90-min maglev · Almaty → Bukhara (Silk Maglev line)',
+    reentryCorridor: 'TKM-2 corridor',
+    windowsPerDay: 6,
+  },
+  elchalten: {
+    arrival: 'Buenos Aires Orbital',
+    arrivalCode: 'BUE-O',
+    vehicle: 'Crescent Orbital-9',
+    operator: 'Aurora Suborbital',
+    duration: '52 min',
+    price: '₹26,40,000',
+    onward: '+ 3-hr eVTOL relay · BA → El Calafate → El Chaltén',
+    reentryCorridor: 'PAT-1 corridor',
+    windowsPerDay: 2,
+  },
+  punakha: {
+    arrival: 'Paro Orbital',
+    arrivalCode: 'PBH-O',
+    vehicle: 'Skyhopper-3',
+    operator: 'ISRO Sub-O',
+    duration: '14 min',
+    price: '₹8,80,000',
+    onward: '+ 2-hr ground transfer · Paro → Punakha',
+    reentryCorridor: 'HIM-2 corridor',
+    windowsPerDay: 8,
+  },
+  socotra: {
+    arrival: 'Mombasa Orbital',
+    arrivalCode: 'MBA-O',
+    vehicle: 'Starship Mk-VI',
+    operator: 'SpaceX Lattice',
+    duration: '29 min',
+    price: '₹18,90,000',
+    onward: '+ 4-hr charter · Mombasa → Socotra (manifest-cleared only)',
+    reentryCorridor: 'SOM-1 corridor',
+    windowsPerDay: 2,
+  },
+};
+
+const SUBORBITAL_DEFAULT: SuborbitalProfile = {
+  arrival: 'Mombasa Orbital',
+  arrivalCode: 'MBA-O',
+  vehicle: 'Starship Mk-VI',
+  operator: 'SpaceX Lattice',
+  duration: '32 min',
+  price: '₹16,40,000',
+  onward: '+ regional eVTOL last-mile',
+  reentryCorridor: 'IND-2 corridor',
+  windowsPerDay: 4,
+};
+
+function suborbitalFor(id: string): Suborbital {
+  const p = SUBORBITAL_PROFILES[id] ?? SUBORBITAL_DEFAULT;
+  return {
+    origin: 'Hyderabad Orbital',
+    originCode: 'HYD-O',
+    arrival: p.arrival,
+    arrivalCode: p.arrivalCode,
+    vehicle: p.vehicle,
+    operator: p.operator,
+    duration: p.duration,
+    peakG: '3.4 G',
+    fastingWindow: '6h pre-launch',
+    medicalGate: 'Cardiac · Tier B clearance',
+    carbonOffset: '12.4 t CO₂e (Treaty offset)',
+    price: p.price,
+    windowsPerDay: p.windowsPerDay,
+    onward: p.onward,
+    reentryCorridor: p.reentryCorridor,
+  };
+}
+
+export const DESTINATIONS: Destination[] = DESTINATION_SEEDS.map(seed => ({
+  ...seed,
+  travelPlan: {
+    ...seed.travelPlan,
+    suborbital: suborbitalFor(seed.id),
+  },
+}));

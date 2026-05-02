@@ -145,12 +145,17 @@ export default function TripPage({ params }: TripPageProps) {
           <div className="p-6">
             <div className="mb-7">
               <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.16em] text-faint">
-                Flights & visa
+                Transit
               </div>
               <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
                 <div className={CARD}>
-                  <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
-                    Flight
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
+                      Flight · standard
+                    </div>
+                    <div className="border border-ghost px-1.5 py-px text-[0.5rem] uppercase tracking-[0.14em] text-faint">
+                      ATM · 9-12h
+                    </div>
                   </div>
                   <div className="mb-1.5 flex items-start justify-between gap-2.5">
                     <span className="text-base">
@@ -175,29 +180,96 @@ export default function TripPage({ params }: TripPageProps) {
                   </button>
                 </div>
 
-                <div className={CARD}>
-                  <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
-                    Visa
+                <div
+                  className={`${CARD} relative overflow-hidden`}
+                  style={{
+                    background: 'linear-gradient(135deg, var(--c-surface) 0%, var(--c-bg) 100%)',
+                  }}
+                >
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 top-0 h-px"
+                    style={{
+                      background:
+                        'linear-gradient(90deg, transparent, var(--c-fg) 50%, transparent)',
+                    }}
+                  />
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-[0.5625rem] uppercase tracking-[0.14em] text-fg">
+                      ◆ Suborbital · point-to-point
+                    </div>
+                    <div className="border border-fg px-1.5 py-px text-[0.5rem] uppercase tracking-[0.14em] text-fg">
+                      Tier 3
+                    </div>
                   </div>
                   <div className="mb-1.5 flex items-start justify-between gap-2.5">
-                    <span className="text-base">e-Visa Application</span>
-                    <span
-                      className={`whitespace-nowrap text-xs ${probHigh ? 'text-sub' : 'text-warn'}`}
-                    >
-                      {prob}% probability
+                    <span className="text-base">
+                      {dest.travelPlan.suborbital.originCode} →{' '}
+                      {dest.travelPlan.suborbital.arrivalCode}
+                    </span>
+                    <span className="whitespace-nowrap text-base">
+                      {dest.travelPlan.suborbital.price}
                     </span>
                   </div>
-                  <div className="flex-1 text-[0.8125rem] leading-relaxed text-dim">
-                    Based on your passport and profile. Processing time: 5–14 days.
+                  <div className="mb-1 text-[0.8125rem] text-dim">
+                    {dest.travelPlan.suborbital.vehicle} · {dest.travelPlan.suborbital.operator}
+                  </div>
+                  <div className="mb-3 text-[0.6875rem] text-faint">
+                    {dest.travelPlan.suborbital.duration} suborbital ·{' '}
+                    {dest.travelPlan.suborbital.peakG} peak ·{' '}
+                    {dest.travelPlan.suborbital.windowsPerDay} windows/day
+                  </div>
+                  <div className="mb-3 flex flex-wrap gap-1.5 text-[0.5625rem] tracking-[0.06em] text-faint">
+                    <span className="border border-ghost px-1.5 py-[3px]">
+                      {dest.travelPlan.suborbital.medicalGate}
+                    </span>
+                    <span className="border border-ghost px-1.5 py-[3px]">
+                      {dest.travelPlan.suborbital.fastingWindow}
+                    </span>
+                    <span className="border border-success-border px-1.5 py-[3px] text-success">
+                      {dest.travelPlan.suborbital.carbonOffset}
+                    </span>
+                  </div>
+                  <div className="flex-1 text-[0.6875rem] italic leading-snug text-faint">
+                    {dest.travelPlan.suborbital.onward}
                   </div>
                   <button
                     type="button"
-                    onClick={() => setBookingModal('visa')}
+                    onClick={() => setBookingModal('suborbital')}
                     className="mt-4 w-full cursor-pointer border-0 bg-fg p-[13px] font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-bg"
                   >
-                    Start visa application
+                    Reserve orbital seat →
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <div className="mb-7">
+              <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.16em] text-faint">
+                Border crossing
+              </div>
+              <div className={CARD}>
+                <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
+                  Visa
+                </div>
+                <div className="mb-1.5 flex items-start justify-between gap-2.5">
+                  <span className="text-base">e-Visa Application</span>
+                  <span
+                    className={`whitespace-nowrap text-xs ${probHigh ? 'text-sub' : 'text-warn'}`}
+                  >
+                    {prob}% probability
+                  </span>
+                </div>
+                <div className="flex-1 text-[0.8125rem] leading-relaxed text-dim">
+                  Based on your passport and profile. Processing time: 5–14 days.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBookingModal('visa')}
+                  className="mt-4 w-full cursor-pointer border-0 bg-fg p-[13px] font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-bg"
+                >
+                  Start visa application
+                </button>
               </div>
             </div>
 

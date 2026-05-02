@@ -48,6 +48,34 @@ export async function POST(req: NextRequest) {
         class: 'Economy',
       },
     };
+  } else if (type === 'suborbital') {
+    const so = dest.travelPlan.suborbital;
+    const cabin = String.fromCharCode(65 + Math.floor(Math.random() * 4));
+    const berth = String(Math.floor(Math.random() * 6) + 1);
+    const flightNumber = `SO-${Math.floor(2000 + Math.random() * 4000)}`;
+    const launchWindow = `T-${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${
+      Math.random() < 0.5 ? '00' : '30'
+    } GMT`;
+
+    result = {
+      bookingRef: ref('SO'),
+      issuedAt,
+      type,
+      details: {
+        vehicle: so.vehicle,
+        operator: so.operator,
+        flightNumber,
+        origin: so.originCode,
+        arrival: so.arrivalCode,
+        duration: so.duration,
+        peakG: so.peakG,
+        cabin: `Cabin ${cabin}`,
+        berth,
+        launchWindow,
+        reentryCorridor: so.reentryCorridor,
+        price: so.price,
+      },
+    };
   } else if (type === 'hotel') {
     const hotel = dest.travelPlan.hotels[0];
     result = {

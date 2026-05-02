@@ -6,6 +6,7 @@ import type {
   BookingResult,
   BookingResultFlight,
   BookingResultHotel,
+  BookingResultSuborbital,
   BookingResultVisa,
   BookingType,
   Destination,
@@ -34,6 +35,16 @@ function stepsFor(type: BookingType, dest: Destination): Step[] {
       { label: 'Optimizing for price and timing...', ms: 600 },
       { label: 'Confirming booking...', ms: 0 },
     ];
+  if (type === 'suborbital')
+    return [
+      { label: 'Verifying medical clearance...', ms: 800 },
+      {
+        label: `Reserving launch slot at ${dest.travelPlan.suborbital.origin}...`,
+        ms: 900,
+      },
+      { label: 'Validating G-tolerance window...', ms: 700 },
+      { label: 'Sequencing cabin & re-entry corridor...', ms: 0 },
+    ];
   if (type === 'hotel')
     return [
       { label: 'Connecting to MakeMyTrip...', ms: 700 },
@@ -47,6 +58,11 @@ function stepsFor(type: BookingType, dest: Destination): Step[] {
     { label: 'Preparing application...', ms: 600 },
     { label: 'Submitting application...', ms: 0 },
   ];
+}
+
+function modalLabel(type: BookingType): string {
+  if (type === 'suborbital') return '◆ orbital ops · spacex lattice';
+  return '@makemytrip integration';
 }
 
 export default function BookingModal({ type, dest, onClose }: BookingModalProps) {
@@ -94,7 +110,7 @@ export default function BookingModal({ type, dest, onClose }: BookingModalProps)
   return (
     <div className="fixed inset-0 z-[300] flex flex-col justify-center bg-bg/95 px-7">
       <div className="mb-4 text-[10px] uppercase tracking-[0.15em] text-faint">
-        @makemytrip integration
+        {modalLabel(type)}
       </div>
 
       {steps.map((s, i) => (
@@ -137,6 +153,37 @@ export default function BookingModal({ type, dest, onClose }: BookingModalProps)
                   </div>
                   <div className="mt-1 text-xs text-faint">
                     {d.duration} · {d.price} · Seat {d.seat}
+                  </div>
+                </>
+              );
+            })()}
+
+          {type === 'suborbital' &&
+            (() => {
+              const d = result.details as BookingResultSuborbital;
+              return (
+                <>
+                  <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                    <span>
+                      {d.origin} → {d.arrival}
+                    </span>
+                    <span className="font-mono text-xs text-faint">{d.flightNumber}</span>
+                  </div>
+                  <div className="text-[13px] text-dim">
+                    {d.vehicle} · {d.operator}
+                  </div>
+                  <div className="mt-1 text-xs text-faint">
+                    {d.duration} · peak {d.peakG} · {d.price}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] tracking-[0.06em] text-faint">
+                    <span className="border border-ghost px-1.5 py-[3px]">{d.cabin}</span>
+                    <span className="border border-ghost px-1.5 py-[3px]">Berth {d.berth}</span>
+                    <span className="border border-ghost px-1.5 py-[3px]">
+                      Launch {d.launchWindow}
+                    </span>
+                    <span className="border border-ghost px-1.5 py-[3px]">
+                      Re-entry: {d.reentryCorridor}
+                    </span>
                   </div>
                 </>
               );

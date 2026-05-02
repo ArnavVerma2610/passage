@@ -32,6 +32,9 @@ interface PassageStore {
   discoverRound: number; // increments every time the deck is reset
   meshBeaconArmed: Record<string, boolean>; // per-destination mesh beacon arm state
   geoAutoReroute: Record<string, boolean>; // per-destination auto-reroute toggle
+  gestureEnabled: boolean; // master switch for webcam-driven gesture control
+  gesturePreviewHidden: boolean; // user hid the floating webcam preview
+  gestureLegendOpen: boolean; // user expanded the gesture legend
 
   // ── session ────────────────────────────────────────────────────────────────
   swipedDestinations: SwipedEntry[];
@@ -73,6 +76,10 @@ interface PassageStore {
 
   setMeshBeaconArmed: (destId: string, armed: boolean) => void;
   setGeoAutoReroute: (destId: string, on: boolean) => void;
+
+  setGestureEnabled: (v: boolean) => void;
+  setGesturePreviewHidden: (v: boolean) => void;
+  setGestureLegendOpen: (v: boolean) => void;
 }
 
 const DEFAULT_PROFILE: ProfileValues = {
@@ -112,6 +119,9 @@ export const usePassageStore = create<PassageStore>()(
       discoverRound: 0,
       meshBeaconArmed: {},
       geoAutoReroute: {},
+      gestureEnabled: false,
+      gesturePreviewHidden: false,
+      gestureLegendOpen: false,
       swipedDestinations: [],
       selectedDestination: null,
       activeTab: 'discover',
@@ -231,6 +241,10 @@ export const usePassageStore = create<PassageStore>()(
         set(s => ({ meshBeaconArmed: { ...s.meshBeaconArmed, [destId]: armed } })),
       setGeoAutoReroute: (destId, on) =>
         set(s => ({ geoAutoReroute: { ...s.geoAutoReroute, [destId]: on } })),
+
+      setGestureEnabled: v => set({ gestureEnabled: v }),
+      setGesturePreviewHidden: v => set({ gesturePreviewHidden: v }),
+      setGestureLegendOpen: v => set({ gestureLegendOpen: v }),
     }),
     {
       name: 'passage-store',
@@ -250,6 +264,9 @@ export const usePassageStore = create<PassageStore>()(
         discoverRound: state.discoverRound,
         meshBeaconArmed: state.meshBeaconArmed,
         geoAutoReroute: state.geoAutoReroute,
+        gestureEnabled: state.gestureEnabled,
+        gesturePreviewHidden: state.gesturePreviewHidden,
+        gestureLegendOpen: state.gestureLegendOpen,
       }),
       onRehydrateStorage: () => state => {
         state?.setHasHydrated(true);

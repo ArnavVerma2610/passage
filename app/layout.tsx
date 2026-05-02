@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { JetBrains_Mono } from 'next/font/google';
 import FontSizeEffect from '@/components/FontSizeEffect';
 import FloatingControls from '@/components/FloatingControls';
+import GestureControl from '@/components/GestureControl';
 import PageTransition from '@/components/PageTransition';
 import './globals.css';
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <FontSizeEffect />
         <PageTransition>{children}</PageTransition>
         <FloatingControls />
+        <GestureControl />
       </body>
     </html>
   );

@@ -67,6 +67,27 @@ function TextIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+function HandIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M18 11V6a2 2 0 0 0-4 0v5" />
+      <path d="M14 10V4a2 2 0 0 0-4 0v6" />
+      <path d="M10 10.5V6a2 2 0 0 0-4 0v8" />
+      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+    </svg>
+  );
+}
+
 const BTN =
   'flex h-[38px] w-[38px] cursor-pointer items-center justify-center border bg-bg font-mono text-[0.6875rem] text-fg transition-colors';
 
@@ -76,6 +97,8 @@ export default function FloatingControls() {
   const fontSize = usePassageStore(s => s.fontSize);
   const toggleTheme = usePassageStore(s => s.toggleTheme);
   const setFontSize = usePassageStore(s => s.setFontSize);
+  const gestureEnabled = usePassageStore(s => s.gestureEnabled);
+  const setGestureEnabled = usePassageStore(s => s.setGestureEnabled);
 
   const [textOpen, setTextOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -132,6 +155,15 @@ export default function FloatingControls() {
       )}
 
       <div className="flex gap-2">
+        <button
+          type="button"
+          aria-label={gestureEnabled ? 'Disable gesture control' : 'Enable gesture control'}
+          onClick={() => setGestureEnabled(!gestureEnabled)}
+          className={`${BTN} ${gestureEnabled ? 'border-fg bg-fg !text-bg' : 'border-ghost'}`}
+          title={gestureEnabled ? 'Stop gesture control' : 'Start gesture control'}
+        >
+          <HandIcon size={15} />
+        </button>
         <button
           type="button"
           aria-label="Toggle text size"

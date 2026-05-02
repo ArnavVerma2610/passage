@@ -69,6 +69,16 @@ const ZOOM_DEADZONE = 0.025;
 const ZOOM_GAIN = 1.05;
 const MIN_ZOOM_DISTANCE = 0.11;
 
+function isPointShape(sample: HandSample) {
+  const { fingers } = sample;
+  return fingers.index && !fingers.middle && !fingers.ring && !fingers.pinky;
+}
+
+function isScrollShape(sample: HandSample) {
+  const { fingers } = sample;
+  return fingers.index && fingers.middle && !fingers.ring && !fingers.pinky;
+}
+
 function clampPoint(point: ScreenPoint, viewport: ViewportSize): ScreenPoint {
   return {
     x: Math.min(viewport.width - 1, Math.max(0, point.x)),
@@ -102,17 +112,35 @@ function pinchCenterForKind(sample: HandSample, kind: PinchKind) {
   return kind === 'middle' ? sample.middlePinchCenter : sample.pinchCenter;
 }
 
-function closestPinchRatio(sample: HandSample) {
-  return Math.min(sample.pinchRatio, sample.middlePinchRatio);
+function canUsePinch(sample: HandSample, kind: PinchKind, threshold: number) {
+  if (kind === 'index') return sample.pinchRatio < threshold;
+
+  const middlePinch = sample.middlePinchRatio < threshold;
+  if (!middlePinch || isPointShape(sample)) return false;
+  return sample.fingers.middle || !sample.fingers.index;
+}
+
+function bestPinchKind(sample: HandSample, threshold: number): PinchKind | null {
+  const indexPinch = canUsePinch(sample, 'index', threshold);
+  const middlePinch = canUsePinch(sample, 'middle', threshold);
+
+  if (!indexPinch && !middlePinch) return null;
+  if (indexPinch && !middlePinch) return 'index';
+  if (middlePinch && !indexPinch) return 'middle';
+  return sample.middlePinchRatio < sample.pinchRatio ? 'middle' : 'index';
+}
+
+function bestPinchRatio(sample: HandSample) {
+  const indexRatio = canUsePinch(sample, 'index', PINCH_ON_RATIO) ? sample.pinchRatio : Number.POSITIVE_INFINITY;
+  const middleRatio = canUsePinch(sample, 'middle', PINCH_ON_RATIO)
+    ? sample.middlePinchRatio
+    : Number.POSITIVE_INFINITY;
+  return Math.min(indexRatio, middleRatio);
 }
 
 function pinchKindForHand(sample: HandSample, activeKind: PinchKind | null): PinchKind | null {
-  if (activeKind && pinchRatioForKind(sample, activeKind) <= PINCH_OFF_RATIO) return activeKind;
-
-  const indexPinchOn = sample.pinchRatio < PINCH_ON_RATIO;
-  const middlePinchOn = sample.middlePinchRatio < PINCH_ON_RATIO;
-  if (!indexPinchOn && !middlePinchOn) return null;
-  return sample.middlePinchRatio < sample.pinchRatio ? 'middle' : 'index';
+  if (activeKind && canUsePinch(sample, activeKind, PINCH_OFF_RATIO)) return activeKind;
+  return bestPinchKind(sample, PINCH_ON_RATIO);
 }
 
 function choosePrimaryHand(samples: HandSample[], activeKind: PinchKind | null) {
@@ -122,15 +150,13 @@ function choosePrimaryHand(samples: HandSample[], activeKind: PinchKind | null) 
     );
   }
 
-  if (samples.some(sample => closestPinchRatio(sample) < PINCH_ON_RATIO)) {
+  if (samples.some(sample => bestPinchRatio(sample) < PINCH_ON_RATIO)) {
     return samples.reduce((best, sample) =>
-      closestPinchRatio(sample) < closestPinchRatio(best) ? sample : best,
+      bestPinchRatio(sample) < bestPinchRatio(best) ? sample : best,
     );
   }
 
-  const scrollHand = samples.find(
-    sample => sample.fingers.index && sample.fingers.middle && sample.fingers.extendedCount === 2,
-  );
+  const scrollHand = samples.find(sample => isScrollShape(sample));
   if (scrollHand) return scrollHand;
 
   return samples.find(sample => sample.fingers.index && sample.fingers.extendedCount <= 2) ?? samples[0];
@@ -288,8 +314,7 @@ class GestureControllerImpl implements GestureController {
   }
 
   private updateCursor(sample: HandSample, pose: HandPose, viewport: ViewportSize) {
-    if (pose !== 'point' && pose !== 'pinch') {
-      this.cursor = null;
+    if (pose !== 'point' && pose !== 'pinch' && pose !== 'scroll') {
       return;
     }
 

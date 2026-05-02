@@ -18,7 +18,7 @@ const SCALE: Record<string, number> = {
   ':': 0.4,
   '+': 0.55,
   '*': 0.7,
-  'o': 0.85,
+  o: 0.85,
   '#': 1,
   '@': 1,
 };
@@ -44,13 +44,11 @@ export default function DotMatrix({
 
   return (
     <div
+      className="grid items-center justify-center"
       style={{
-        display: 'grid',
         gridTemplateColumns: `repeat(${cols}, ${dotSize}px)`,
         gridTemplateRows: `repeat(${frame.length}, ${dotSize}px)`,
         gap,
-        justifyContent: 'center',
-        alignContent: 'center',
       }}
     >
       {frame.flatMap((row, ri) =>
@@ -60,17 +58,16 @@ export default function DotMatrix({
           return (
             <div
               key={`${ri}-${ci}`}
+              className="rounded-full transition-[opacity,background] duration-200"
               style={{
                 width: dotSize,
                 height: dotSize,
-                borderRadius: '50%',
                 background: intensity === 0 ? dimColor : color,
-                opacity: intensity === 0 ? 0.10 : 0.30 + intensity * 0.70,
-                transition: 'opacity 0.18s ease, background 0.18s ease',
+                opacity: intensity === 0 ? 0.1 : 0.3 + intensity * 0.7,
               }}
             />
           );
-        })
+        }),
       )}
     </div>
   );
@@ -230,9 +227,14 @@ export const BIG_NETWORK_FRAMES: string[][] = [
       '............::::::::::...........',
       '.............:::::::.............',
     ];
-    return ['.................................', ...base, '.................................'].slice(0, 17).concat(
-      Array.from({ length: Math.max(0, 17 - (base.length + 2)) }, () => '.................................')
-    );
+    return ['.................................', ...base, '.................................']
+      .slice(0, 17)
+      .concat(
+        Array.from(
+          { length: Math.max(0, 17 - (base.length + 2)) },
+          () => '.................................',
+        ),
+      );
   })(),
   // Same head, beam at row 3 (top of head)
   (() => {
@@ -336,7 +338,7 @@ export const BIG_NETWORK_FRAMES: string[][] = [
     '.................................',
     '.................................',
     '.................................',
-  ].map(s => s.replace(/[A-Z]/g, '.')),  // hide letters in dot-matrix; use shape only
+  ].map(s => s.replace(/[A-Z]/g, '.')), // hide letters in dot-matrix; use shape only
 ];
 
 // BIG_PASSPORT — open passport book; stamp descends from above and presses page.
@@ -428,12 +430,11 @@ export const BIG_PASSPORT_FRAMES: string[][] = [
 export const BIG_COMPASS_FRAMES: string[][] = (() => {
   const rows = 6;
   const barLen = 22;
-  const targets = [20, 18, 14, 16, 12, 17];   // bar widths each row
-  const labelCol = 3;   // dot icon at left
-  const startCol = 6;   // bar starts here
+  const targets = [20, 18, 14, 16, 12, 17]; // bar widths each row
+  const labelCol = 3; // dot icon at left
+  const startCol = 6; // bar starts here
   const frameCount = 6;
   const out: string[][] = [];
-  const rowHeight = 2;  // each bar is 1 row of #/o + 1 spacer
 
   for (let f = 0; f < frameCount; f++) {
     const lines: string[] = [];
@@ -443,12 +444,16 @@ export const BIG_COMPASS_FRAMES: string[][] = (() => {
     for (let r = 0; r < rows; r++) {
       // Bar reveals progressively: row r reveals at frame ≥ r
       const visible = f >= r;
-      const fill = visible ? Math.min(targets[r], Math.round(targets[r] * Math.min(1, (f - r + 1) / 2))) : 0;
+      const fill = visible
+        ? Math.min(targets[r], Math.round(targets[r] * Math.min(1, (f - r + 1) / 2)))
+        : 0;
       const bar = visible
-        ? '#'.repeat(fill) + 'o'.repeat(Math.max(0, Math.min(2, targets[r] - fill))) + '.'.repeat(Math.max(0, barLen - fill - Math.min(2, targets[r] - fill)))
+        ? '#'.repeat(fill) +
+          'o'.repeat(Math.max(0, Math.min(2, targets[r] - fill))) +
+          '.'.repeat(Math.max(0, barLen - fill - Math.min(2, targets[r] - fill)))
         : '.'.repeat(barLen);
       const icon = visible ? '#' : ':';
-      let line = '.'.repeat(33).split('');
+      const line = '.'.repeat(33).split('');
       line[labelCol] = icon;
       for (let i = 0; i < bar.length; i++) line[startCol + i] = bar[i];
       lines.push(line.join(''));

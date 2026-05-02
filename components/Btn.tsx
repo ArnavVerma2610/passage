@@ -1,24 +1,39 @@
 'use client';
 
-import { c, MONO } from '@/lib/data';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 interface BtnProps {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick?: () => void;
   variant?: 'primary' | 'outline' | 'ghost';
   style?: CSSProperties;
+  className?: string;
 }
 
-export default function Btn({ children, onClick, variant = 'primary', style: sx = {} }: BtnProps) {
-  const base: CSSProperties = {
-    fontFamily: MONO, fontSize: '0.75rem', letterSpacing: '0.08em', cursor: 'pointer',
-    textTransform: 'uppercase', padding: '15px 0', width: '100%', border: 'none',
-    transition: 'opacity 0.2s', marginTop: 8, ...sx,
-  };
-  if (variant === 'primary')
-    return <button onClick={onClick} style={{ ...base, background: c.fg, color: c.bg }}>{children}</button>;
-  if (variant === 'outline')
-    return <button onClick={onClick} style={{ ...base, background: 'transparent', color: c.fg, border: `1px solid ${c.faint}` }}>{children}</button>;
-  return <button onClick={onClick} style={{ ...base, background: 'transparent', color: c.dim, border: 'none', padding: '10px 0' }}>{children}</button>;
+const VARIANTS: Record<NonNullable<BtnProps['variant']>, string> = {
+  primary: 'bg-fg text-bg',
+  outline: 'bg-transparent text-fg border border-faint',
+  ghost: 'bg-transparent text-dim border-0 py-2.5',
+};
+
+export default function Btn({
+  children,
+  onClick,
+  variant = 'primary',
+  style,
+  className = '',
+}: BtnProps) {
+  const base =
+    'w-full font-mono text-xs uppercase tracking-[0.08em] cursor-pointer transition-opacity mt-2 py-[15px] border-0';
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={style}
+      className={`${base} ${VARIANTS[variant]} ${className}`.trim()}
+    >
+      {children}
+    </button>
+  );
 }

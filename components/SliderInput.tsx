@@ -1,7 +1,5 @@
 'use client';
 
-import { c, MONO } from '@/lib/data';
-
 interface SliderInputProps {
   value: number;
   onChange: (v: number) => void;
@@ -12,24 +10,37 @@ interface SliderInputProps {
   icon: string;
 }
 
-export default function SliderInput({ value, onChange, label, desc, low, high, icon }: SliderInputProps) {
+export default function SliderInput({
+  value,
+  onChange,
+  label,
+  desc,
+  low,
+  high,
+  icon,
+}: SliderInputProps) {
   return (
-    <div style={{ marginBottom: 32 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-        <span style={{ fontSize: 14, color: c.fg }}>{icon} {label}</span>
-        <span style={{ fontSize: 26, fontFamily: MONO, color: c.fg }}>{value}</span>
+    <div className="mb-8">
+      <div className="mb-1.5 flex items-baseline justify-between">
+        <span className="text-sm text-fg">
+          {icon} {label}
+        </span>
+        <span className="font-mono text-2xl text-fg">{value}</span>
       </div>
-      <div style={{ fontSize: 12, color: c.faint, marginBottom: 14, lineHeight: 1.5 }}>{desc}</div>
-      <div style={{ position: "relative", height: 32, display: "flex", alignItems: "center" }}>
+      <p className="mb-3.5 text-xs leading-snug text-faint">{desc}</p>
+      <div className="relative flex h-8 items-center">
         <input
-          type="range" min="1" max="10" value={value}
-          onChange={e => onChange(parseInt(e.target.value))}
-          style={{ width: "100%", appearance: "none", background: "transparent", cursor: "pointer", height: 32 }}
+          type="range"
+          min={1}
+          max={10}
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          className="h-8 w-full cursor-pointer appearance-none bg-transparent"
         />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span style={{ fontSize: 10, color: c.faint, letterSpacing: "0.05em" }}>{low}</span>
-        <span style={{ fontSize: 10, color: c.faint, letterSpacing: "0.05em" }}>{high}</span>
+      <div className="mt-1 flex justify-between text-[0.625rem] tracking-wider text-faint">
+        <span>{low}</span>
+        <span>{high}</span>
       </div>
     </div>
   );

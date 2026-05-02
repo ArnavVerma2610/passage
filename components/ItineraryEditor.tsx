@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { c, MONO } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
 import type { Destination, ItineraryDay, ItineraryStyle } from '@/lib/types';
 
@@ -21,14 +20,26 @@ const STYLE_DESCS: Record<ItineraryStyle, string> = {
   relaxed: 'Slow days. More food, less hiking.',
 };
 
+const INPUT =
+  'w-full border border-ghost bg-surface px-3 py-2.5 font-mono text-[0.8125rem] text-fg outline-none';
+
+const GHOST_BTN =
+  'cursor-pointer border border-ghost bg-transparent px-3 py-2 font-mono text-[0.625rem] uppercase tracking-[0.1em] text-dim';
+
+const PRIMARY_BTN =
+  'cursor-pointer border-0 bg-fg px-3.5 py-2 font-mono text-[0.625rem] uppercase tracking-[0.1em] text-bg';
+
+const SMALL_BTN =
+  'cursor-pointer border border-ghost bg-transparent px-2 py-1 font-mono text-[0.5625rem] uppercase tracking-[0.08em] text-faint';
+
 export default function ItineraryEditor({ dest }: ItineraryEditorProps) {
   const customItineraries = usePassageStore(s => s.customItineraries);
-  const itineraryStyle    = usePassageStore(s => s.itineraryStyle);
-  const setItinerary      = usePassageStore(s => s.setItinerary);
-  const clearItinerary    = usePassageStore(s => s.clearItinerary);
+  const itineraryStyle = usePassageStore(s => s.itineraryStyle);
+  const setItinerary = usePassageStore(s => s.setItinerary);
+  const clearItinerary = usePassageStore(s => s.clearItinerary);
   const setItineraryStyle = usePassageStore(s => s.setItineraryStyle);
   const updateItineraryDay = usePassageStore(s => s.updateItineraryDay);
-  const addItineraryDay    = usePassageStore(s => s.addItineraryDay);
+  const addItineraryDay = usePassageStore(s => s.addItineraryDay);
   const removeItineraryDay = usePassageStore(s => s.removeItineraryDay);
 
   const variants = dest.travelPlan.itineraryVariants;
@@ -47,23 +58,17 @@ export default function ItineraryEditor({ dest }: ItineraryEditorProps) {
 
   const applyStyle = (style: ItineraryStyle) => {
     setItineraryStyle(dest.id, style);
-    if (variants && variants[style]) {
-      // overwrite working copy with chosen variant
-      setItinerary(dest.id, variants[style]);
-    } else {
-      clearItinerary(dest.id);
-    }
+    if (variants && variants[style]) setItinerary(dest.id, variants[style]);
+    else clearItinerary(dest.id);
   };
 
   const regenerate = () => {
-    // Cycle through styles: classic → adventure → relaxed → classic
     const order: ItineraryStyle[] = ['classic', 'adventure', 'relaxed'];
     const nextStyle = order[(order.indexOf(baseStyle) + 1) % order.length];
     applyStyle(nextStyle);
   };
 
   const startEdit = (idx: number, day: ItineraryDay) => {
-    // Take a snapshot in store before edits if we haven't yet
     if (!isCustom) setItinerary(dest.id, days);
     setEditingIdx(idx);
     setEditTitle(day.title);
@@ -72,11 +77,12 @@ export default function ItineraryEditor({ dest }: ItineraryEditorProps) {
 
   const saveEdit = () => {
     if (editingIdx === null) return;
-    updateItineraryDay(dest.id, editingIdx, { title: editTitle.trim(), desc: editDesc.trim() });
+    updateItineraryDay(dest.id, editingIdx, {
+      title: editTitle.trim(),
+      desc: editDesc.trim(),
+    });
     setEditingIdx(null);
   };
-
-  const cancelEdit = () => setEditingIdx(null);
 
   const startAdd = () => {
     if (!isCustom) setItinerary(dest.id, days);
@@ -92,167 +98,145 @@ export default function ItineraryEditor({ dest }: ItineraryEditorProps) {
     setAdding(false);
   };
 
-  const cancelAdd = () => setAdding(false);
-
   const remove = (idx: number) => {
     if (!isCustom) setItinerary(dest.id, days);
     removeItineraryDay(dest.id, idx);
   };
 
-  const resetCustom = () => clearItinerary(dest.id);
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%', background: c.surface, border: `1px solid ${c.ghost}`,
-    color: c.fg, fontFamily: MONO, fontSize: '0.8125rem',
-    padding: '10px 12px', outline: 'none',
-  };
-
-  const ghostBtn: React.CSSProperties = {
-    background: 'none', border: `1px solid ${c.ghost}`, color: c.dim,
-    fontFamily: MONO, fontSize: '0.625rem', letterSpacing: '0.1em',
-    textTransform: 'uppercase', padding: '8px 12px', cursor: 'pointer',
-  };
-
-  const primaryBtn: React.CSSProperties = {
-    background: c.fg, border: 'none', color: c.bg,
-    fontFamily: MONO, fontSize: '0.625rem', letterSpacing: '0.1em',
-    textTransform: 'uppercase', padding: '8px 14px', cursor: 'pointer',
-  };
-
   return (
     <div>
-      {/* Style selector */}
-      <div style={{ fontSize: '0.5625rem', letterSpacing: '0.16em', color: c.faint, marginBottom: 10, textTransform: 'uppercase' }}>
+      <div className="mb-2.5 text-[0.5625rem] uppercase tracking-[0.16em] text-faint">
         Itinerary style
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 8 }}>
+      <div className="mb-2 grid grid-cols-3 gap-1.5">
         {(Object.keys(STYLE_LABELS) as ItineraryStyle[]).map(style => {
           const active = baseStyle === style;
           return (
             <button
               key={style}
+              type="button"
               onClick={() => applyStyle(style)}
-              style={{
-                background: active ? '#111' : 'none',
-                border: `1px solid ${active ? c.fg : c.ghost}`,
-                color: active ? c.fg : c.dim,
-                fontFamily: MONO, fontSize: '0.6875rem',
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-                padding: '10px 8px', cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
+              className={`cursor-pointer border px-2 py-2.5 font-mono text-[0.6875rem] uppercase tracking-[0.08em] transition-all ${
+                active ? 'border-fg bg-active text-fg' : 'border-ghost bg-transparent text-dim'
+              }`}
             >
               {STYLE_LABELS[style]}
             </button>
           );
         })}
       </div>
-      <div style={{ fontSize: '0.6875rem', color: c.faint, marginBottom: 18 }}>
-        {STYLE_DESCS[baseStyle]}
-      </div>
+      <div className="mb-[18px] text-[0.6875rem] text-faint">{STYLE_DESCS[baseStyle]}</div>
 
-      {/* Action row */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 22 }}>
-        <button onClick={regenerate} style={primaryBtn}>↻ Regenerate</button>
-        <button onClick={startAdd} style={ghostBtn}>+ Add day</button>
+      <div className="mb-[22px] flex flex-wrap gap-2">
+        <button type="button" onClick={regenerate} className={PRIMARY_BTN}>
+          ↻ Regenerate
+        </button>
+        <button type="button" onClick={startAdd} className={GHOST_BTN}>
+          + Add day
+        </button>
         {isCustom && (
-          <button onClick={resetCustom} style={ghostBtn}>Reset to default</button>
+          <button type="button" onClick={() => clearItinerary(dest.id)} className={GHOST_BTN}>
+            Reset to default
+          </button>
         )}
       </div>
 
-      {/* Day list */}
       <div>
         {days.map((day, i) => {
           const isEditing = editingIdx === i;
           return (
             <div
               key={i}
-              style={{
-                marginBottom: 18, paddingLeft: 20,
-                borderLeft: `1px solid ${isEditing ? c.fg : c.ghost}`,
-                position: 'relative',
-              }}
+              className={`relative mb-[18px] border-l pl-5 ${
+                isEditing ? 'border-fg' : 'border-ghost'
+              }`}
             >
-              <div style={{
-                position: 'absolute', left: -4, top: 0, width: 7, height: 7,
-                borderRadius: '50%', background: isEditing ? c.fg : c.ghost,
-              }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 }}>
-                <div style={{ fontSize: '0.5625rem', color: c.faint, letterSpacing: '0.1em' }}>DAY {day.day}</div>
+              <div
+                className={`absolute -left-1 top-0 h-[7px] w-[7px] rounded-full ${
+                  isEditing ? 'bg-fg' : 'bg-ghost'
+                }`}
+              />
+              <div className="mb-1.5 flex items-start justify-between">
+                <div className="text-[0.5625rem] tracking-[0.1em] text-faint">DAY {day.day}</div>
                 {!isEditing && (
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button
-                      onClick={() => startEdit(i, day)}
-                      style={{ background: 'none', border: `1px solid ${c.ghost}`, color: c.faint, fontFamily: MONO, fontSize: '0.5625rem', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 8px', cursor: 'pointer' }}
-                    >Edit</button>
+                  <div className="flex gap-1.5">
+                    <button type="button" onClick={() => startEdit(i, day)} className={SMALL_BTN}>
+                      Edit
+                    </button>
                     {days.length > 1 && (
-                      <button
-                        onClick={() => remove(i)}
-                        style={{ background: 'none', border: `1px solid ${c.ghost}`, color: c.faint, fontFamily: MONO, fontSize: '0.5625rem', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 8px', cursor: 'pointer' }}
-                      >Delete</button>
+                      <button type="button" onClick={() => remove(i)} className={SMALL_BTN}>
+                        Delete
+                      </button>
                     )}
                   </div>
                 )}
               </div>
               {isEditing ? (
-                <div style={{ marginTop: 6 }}>
+                <div className="mt-1.5">
                   <input
                     value={editTitle}
                     onChange={e => setEditTitle(e.target.value)}
                     placeholder="Title"
-                    style={{ ...inputStyle, marginBottom: 8 }}
+                    className={`${INPUT} mb-2`}
                   />
                   <textarea
                     value={editDesc}
                     onChange={e => setEditDesc(e.target.value)}
                     placeholder="What happens this day?"
                     rows={3}
-                    style={{ ...inputStyle, resize: 'vertical', minHeight: 70 }}
+                    className={`${INPUT} min-h-[70px] resize-y`}
                   />
-                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                    <button onClick={saveEdit} style={primaryBtn}>Save</button>
-                    <button onClick={cancelEdit} style={ghostBtn}>Cancel</button>
+                  <div className="mt-2.5 flex gap-2">
+                    <button type="button" onClick={saveEdit} className={PRIMARY_BTN}>
+                      Save
+                    </button>
+                    <button type="button" onClick={() => setEditingIdx(null)} className={GHOST_BTN}>
+                      Cancel
+                    </button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div style={{ fontSize: '0.9375rem', marginBottom: 6 }}>{day.title}</div>
-                  <div style={{ fontSize: '0.8125rem', color: c.dim, lineHeight: 1.6 }}>{day.desc}</div>
+                  <div className="mb-1.5 text-[0.9375rem]">{day.title}</div>
+                  <div className="text-[0.8125rem] leading-relaxed text-dim">{day.desc}</div>
                 </>
               )}
             </div>
           );
         })}
 
-        {/* Add new day form */}
         {adding && (
-          <div style={{ marginBottom: 18, paddingLeft: 20, borderLeft: `1px dashed ${c.fg}`, position: 'relative' }}>
-            <div style={{ position: 'absolute', left: -4, top: 0, width: 7, height: 7, borderRadius: '50%', border: `1px solid ${c.fg}`, background: c.bg }} />
-            <div style={{ fontSize: '0.5625rem', color: c.faint, letterSpacing: '0.1em', marginBottom: 6 }}>NEW DAY</div>
+          <div className="relative mb-[18px] border-l border-dashed border-fg pl-5">
+            <div className="absolute -left-1 top-0 h-[7px] w-[7px] rounded-full border border-fg bg-bg" />
+            <div className="mb-1.5 text-[0.5625rem] tracking-[0.1em] text-faint">NEW DAY</div>
             <input
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               placeholder="Day title"
-              style={{ ...inputStyle, marginBottom: 8 }}
+              className={`${INPUT} mb-2`}
             />
             <textarea
               value={newDesc}
               onChange={e => setNewDesc(e.target.value)}
               placeholder="What's the plan?"
               rows={3}
-              style={{ ...inputStyle, resize: 'vertical', minHeight: 70 }}
+              className={`${INPUT} min-h-[70px] resize-y`}
             />
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button onClick={saveAdd} style={primaryBtn}>Add day</button>
-              <button onClick={cancelAdd} style={ghostBtn}>Cancel</button>
+            <div className="mt-2.5 flex gap-2">
+              <button type="button" onClick={saveAdd} className={PRIMARY_BTN}>
+                Add day
+              </button>
+              <button type="button" onClick={() => setAdding(false)} className={GHOST_BTN}>
+                Cancel
+              </button>
             </div>
           </div>
         )}
       </div>
 
       {isCustom && (
-        <div style={{ marginTop: 18, fontSize: '0.625rem', color: c.faint, fontStyle: 'italic' }}>
-          You're working with a custom itinerary. Reset to revert to {STYLE_LABELS[baseStyle]}.
+        <div className="mt-[18px] text-[0.625rem] italic text-faint">
+          You&apos;re working with a custom itinerary. Reset to revert to {STYLE_LABELS[baseStyle]}.
         </div>
       )}
     </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { c, MONO } from '@/lib/data';
 import type { FoodSpot } from '@/lib/types';
 
 interface FoodMenuModalProps {
@@ -14,9 +13,10 @@ export function priceDollars(level: 1 | 2 | 3 | 4) {
 }
 
 export default function FoodMenuModal({ spot, onClose }: FoodMenuModalProps) {
-  // close on Esc, lock body scroll
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -29,84 +29,60 @@ export default function FoodMenuModal({ spot, onClose }: FoodMenuModalProps) {
   return (
     <div
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.85)',
-        zIndex: 250,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '20px',
-        fontFamily: MONO,
-      }}
+      className="fixed inset-0 z-[250] flex items-center justify-center bg-scrim p-5 font-mono"
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          width: '100%', maxWidth: 560, maxHeight: '88vh', overflowY: 'auto',
-          background: c.bg, border: `1px solid ${c.ghost}`,
-          padding: '28px',
-        }}
+        className="max-h-[88vh] w-full max-w-[560px] overflow-y-auto border border-ghost bg-bg p-7"
       >
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.5625rem', letterSpacing: '0.14em', color: c.faint, marginBottom: 6, textTransform: 'uppercase' }}>{spot.type}</div>
-            <div style={{ fontSize: '1.375rem', color: c.fg, lineHeight: 1.2 }}>{spot.name}</div>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-1.5 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
+              {spot.type}
+            </div>
+            <div className="text-[1.375rem] leading-tight text-fg">{spot.name}</div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
-            style={{
-              background: 'none', border: `1px solid ${c.ghost}`, color: c.faint,
-              fontFamily: MONO, fontSize: '0.875rem', cursor: 'pointer',
-              width: 32, height: 32, flexShrink: 0,
-            }}
-          >✕</button>
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center border border-ghost bg-transparent font-mono text-sm text-faint"
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Meta */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-          <span style={{ padding: '4px 10px', fontSize: '0.625rem', border: `1px solid ${c.ghost}`, color: c.fg, letterSpacing: '0.08em' }}>
+        <div className="mb-[18px] flex flex-wrap gap-2">
+          <span className="border border-ghost px-2.5 py-1 text-[0.625rem] tracking-[0.08em] text-fg">
             {priceDollars(spot.priceLevel)}
           </span>
-          <span style={{ padding: '4px 10px', fontSize: '0.625rem', border: `1px solid ${c.ghost}`, color: c.faint, letterSpacing: '0.05em' }}>
+          <span className="border border-ghost px-2.5 py-1 text-[0.625rem] tracking-[0.05em] text-faint">
             📍 {spot.map}
           </span>
         </div>
 
-        {/* Description */}
-        <div style={{ fontSize: '0.875rem', color: c.dim, lineHeight: 1.65, marginBottom: 14 }}>
-          {spot.desc}
-        </div>
+        <div className="mb-3.5 text-sm leading-relaxed text-dim">{spot.desc}</div>
 
-        {/* Fun fact */}
-        <div style={{
-          padding: '12px 14px',
-          background: c.surface,
-          borderLeft: `2px solid ${c.fg}`,
-          fontSize: '0.8125rem',
-          color: c.sub,
-          lineHeight: 1.6,
-          fontStyle: 'italic',
-          marginBottom: 18,
-        }}>
+        <div className="mb-[18px] border-l-2 border-fg bg-surface px-3.5 py-3 text-[0.8125rem] italic leading-relaxed text-sub">
           Fun fact — {spot.funFact}
         </div>
 
-        {/* Submitted by */}
-        <div style={{ fontSize: '0.6875rem', color: c.faint, marginBottom: 22 }}>
-          submitted by <span style={{ color: c.dim }}>{spot.submittedBy}</span>
+        <div className="mb-[22px] text-[0.6875rem] text-faint">
+          submitted by <span className="text-dim">{spot.submittedBy}</span>
         </div>
 
-        {/* Menu */}
-        <div style={{ fontSize: '0.5625rem', letterSpacing: '0.18em', color: c.faint, marginBottom: 12, textTransform: 'uppercase' }}>Menu</div>
-        <div style={{ borderTop: `1px solid ${c.ghost}` }}>
+        <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.18em] text-faint">Menu</div>
+        <div className="border-t border-ghost">
           {spot.menu.map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, padding: '14px 0', borderBottom: `1px solid ${c.ghost}` }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.875rem', color: c.fg, marginBottom: 3 }}>{item.name}</div>
-                <div style={{ fontSize: '0.75rem', color: c.dim, lineHeight: 1.5 }}>{item.desc}</div>
+            <div
+              key={i}
+              className="flex items-start justify-between gap-4 border-b border-ghost py-3.5"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="mb-0.5 text-sm text-fg">{item.name}</div>
+                <div className="text-xs leading-snug text-dim">{item.desc}</div>
               </div>
-              <div style={{ fontSize: '0.8125rem', color: c.sub, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <div className="shrink-0 whitespace-nowrap text-[0.8125rem] text-sub">
                 {item.price}
               </div>
             </div>

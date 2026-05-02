@@ -1,9 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { c, MONO } from '@/lib/data';
+import { useEffect, useRef, useState } from 'react';
 import Btn from '@/components/Btn';
-import type { BookingType, Destination, BookingResult, BookingResultFlight, BookingResultHotel, BookingResultVisa } from '@/lib/types';
+import type {
+  BookingResult,
+  BookingResultFlight,
+  BookingResultHotel,
+  BookingResultVisa,
+  BookingType,
+  Destination,
+} from '@/lib/types';
 
 interface BookingModalProps {
   type: BookingType;
@@ -11,28 +17,35 @@ interface BookingModalProps {
   onClose: () => void;
 }
 
-interface Step { label: string; ms: number; }
+interface Step {
+  label: string;
+  ms: number;
+}
 
-function wait(ms: number) { return new Promise<void>(r => setTimeout(r, ms)); }
+function wait(ms: number) {
+  return new Promise<void>(r => setTimeout(r, ms));
+}
 
 function stepsFor(type: BookingType, dest: Destination): Step[] {
-  if (type === 'flight') return [
-    { label: "Connecting to MakeMyTrip...", ms: 700 },
-    { label: `Searching flights to ${dest.travelPlan.flights.to}...`, ms: 800 },
-    { label: "Optimizing for price and timing...", ms: 600 },
-    { label: "Confirming booking...", ms: 0 },
-  ];
-  if (type === 'hotel') return [
-    { label: "Connecting to MakeMyTrip...", ms: 700 },
-    { label: `Searching stays near ${dest.name}...`, ms: 800 },
-    { label: "Checking availability...", ms: 600 },
-    { label: "Confirming reservation...", ms: 0 },
-  ];
+  if (type === 'flight')
+    return [
+      { label: 'Connecting to MakeMyTrip...', ms: 700 },
+      { label: `Searching flights to ${dest.travelPlan.flights.to}...`, ms: 800 },
+      { label: 'Optimizing for price and timing...', ms: 600 },
+      { label: 'Confirming booking...', ms: 0 },
+    ];
+  if (type === 'hotel')
+    return [
+      { label: 'Connecting to MakeMyTrip...', ms: 700 },
+      { label: `Searching stays near ${dest.name}...`, ms: 800 },
+      { label: 'Checking availability...', ms: 600 },
+      { label: 'Confirming reservation...', ms: 0 },
+    ];
   return [
-    { label: "Checking visa requirements...", ms: 700 },
-    { label: "Analyzing your travel profile...", ms: 800 },
-    { label: "Preparing application...", ms: 600 },
-    { label: "Submitting application...", ms: 0 },
+    { label: 'Checking visa requirements...', ms: 700 },
+    { label: 'Analyzing your travel profile...', ms: 800 },
+    { label: 'Preparing application...', ms: 600 },
+    { label: 'Submitting application...', ms: 0 },
   ];
 }
 
@@ -70,77 +83,104 @@ export default function BookingModal({ type, dest, onClose }: BookingModalProps)
       }
     })();
 
-    return () => { cancelRef.current = true; };
+    return () => {
+      cancelRef.current = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const done = result !== null;
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.95)", zIndex: 300, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 28px" }}>
-      <div style={{ fontSize: 10, letterSpacing: "0.15em", color: c.faint, marginBottom: 16, textTransform: "uppercase" }}>
+    <div className="fixed inset-0 z-[300] flex flex-col justify-center bg-bg/95 px-7">
+      <div className="mb-4 text-[10px] uppercase tracking-[0.15em] text-faint">
         @makemytrip integration
       </div>
 
       {steps.map((s, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", opacity: i <= step ? 1 : 0.15, transition: "opacity 0.4s" }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: "50%",
-            background: i < step ? c.fg : (done && i === step) ? "#446644" : "transparent",
-            border: i <= step ? `1px solid ${c.fg}` : `1px solid ${c.faint}`,
-            transition: "all 0.3s",
-          }} />
-          <span style={{ fontSize: 13, color: i <= step ? c.sub : c.faint }}>{s.label}</span>
+        <div
+          key={i}
+          className="flex items-center gap-3 py-2.5 transition-opacity duration-300"
+          style={{ opacity: i <= step ? 1 : 0.15 }}
+        >
+          <div
+            className={`h-2 w-2 rounded-full transition-all ${
+              i <= step ? 'border border-fg' : 'border border-faint'
+            }`}
+            style={{
+              background:
+                i < step ? 'var(--c-fg)' : done && i === step ? 'var(--c-success)' : 'transparent',
+            }}
+          />
+          <span className={`text-[13px] ${i <= step ? 'text-sub' : 'text-faint'}`}>{s.label}</span>
         </div>
       ))}
 
-      {error && (
-        <div style={{ marginTop: 20, fontSize: 13, color: "#aa0000" }}>{error}</div>
-      )}
+      {error && <div className="mt-5 text-[13px] text-danger">{error}</div>}
 
       {done && result && (
-        <div style={{ marginTop: 28, padding: "16px", border: `1px solid ${c.ghost}` }}>
-          <div style={{ fontSize: 10, color: c.faint, letterSpacing: "0.1em", marginBottom: 12, textTransform: "uppercase" }}>
+        <div className="mt-7 border border-ghost p-4">
+          <div className="mb-3 text-[10px] uppercase tracking-[0.1em] text-faint">
             Ref: {result.bookingRef}
           </div>
 
-          {type === 'flight' && (() => {
-            const d = result.details as BookingResultFlight;
-            return (
-              <>
-                <div style={{ fontSize: 14, marginBottom: 4 }}>{d.from} → {d.to}</div>
-                <div style={{ fontSize: 13, color: c.dim }}>{d.airline} · {d.class}</div>
-                <div style={{ fontSize: 12, color: c.faint, marginTop: 4 }}>{d.duration} · {d.price} · Seat {d.seat}</div>
-              </>
-            );
-          })()}
+          {type === 'flight' &&
+            (() => {
+              const d = result.details as BookingResultFlight;
+              return (
+                <>
+                  <div className="mb-1 text-sm">
+                    {d.from} → {d.to}
+                  </div>
+                  <div className="text-[13px] text-dim">
+                    {d.airline} · {d.class}
+                  </div>
+                  <div className="mt-1 text-xs text-faint">
+                    {d.duration} · {d.price} · Seat {d.seat}
+                  </div>
+                </>
+              );
+            })()}
 
-          {type === 'hotel' && (() => {
-            const d = result.details as BookingResultHotel;
-            return (
-              <>
-                <div style={{ fontSize: 14, marginBottom: 4 }}>{d.name}</div>
-                <div style={{ fontSize: 13, color: c.dim }}>{d.hotelType} · {d.nights} nights</div>
-                <div style={{ fontSize: 12, color: c.faint, marginTop: 4 }}>{d.pricePerNight} · Code: {d.confirmationCode}</div>
-              </>
-            );
-          })()}
+          {type === 'hotel' &&
+            (() => {
+              const d = result.details as BookingResultHotel;
+              return (
+                <>
+                  <div className="mb-1 text-sm">{d.name}</div>
+                  <div className="text-[13px] text-dim">
+                    {d.hotelType} · {d.nights} nights
+                  </div>
+                  <div className="mt-1 text-xs text-faint">
+                    {d.pricePerNight} · Code: {d.confirmationCode}
+                  </div>
+                </>
+              );
+            })()}
 
-          {type === 'visa' && (() => {
-            const d = result.details as BookingResultVisa;
-            return (
-              <>
-                <div style={{ fontSize: 14, marginBottom: 4 }}>{d.applicationType} for {d.country}</div>
-                <div style={{ fontSize: 13, color: c.dim }}>Status: {d.status}</div>
-                <div style={{ fontSize: 12, color: c.faint, marginTop: 4 }}>Processing: {d.processingTime} · ID: {d.applicationId}</div>
-              </>
-            );
-          })()}
+          {type === 'visa' &&
+            (() => {
+              const d = result.details as BookingResultVisa;
+              return (
+                <>
+                  <div className="mb-1 text-sm">
+                    {d.applicationType} for {d.country}
+                  </div>
+                  <div className="text-[13px] text-dim">Status: {d.status}</div>
+                  <div className="mt-1 text-xs text-faint">
+                    Processing: {d.processingTime} · ID: {d.applicationId}
+                  </div>
+                </>
+              );
+            })()}
         </div>
       )}
 
-      <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
+      <div className="mt-6 flex gap-2.5">
         {done && <Btn onClick={onClose}>Confirm booking</Btn>}
-        <Btn variant="outline" onClick={onClose} style={{ marginTop: 0 }}>{done ? "Cancel" : "Close"}</Btn>
+        <Btn variant="outline" onClick={onClose} style={{ marginTop: 0 }}>
+          {done ? 'Cancel' : 'Close'}
+        </Btn>
       </div>
     </div>
   );

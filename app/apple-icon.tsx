@@ -3,6 +3,8 @@ import { ImageResponse } from 'next/og';
 export const size = { width: 180, height: 180 };
 export const contentType = 'image/png';
 
+// ImageResponse runs in an Edge runtime that doesn't support Tailwind's CSS;
+// inline styles are required here.
 export default function AppleIcon() {
   return new ImageResponse(
     <div
@@ -17,7 +19,15 @@ export default function AppleIcon() {
         boxSizing: 'border-box',
       }}
     >
-      <span style={{ color: '#fff', fontSize: 110, fontFamily: 'Georgia, serif', fontWeight: 'bold', lineHeight: 1 }}>
+      <span
+        style={{
+          color: '#fff',
+          fontSize: 110,
+          fontFamily: 'Georgia, serif',
+          fontWeight: 'bold',
+          lineHeight: 1,
+        }}
+      >
         P
       </span>
     </div>,

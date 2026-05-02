@@ -1,145 +1,138 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useState, use } from 'react';
+import { useRouter } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import BookingModal from '@/components/BookingModal';
 import FoodMenuModal, { priceDollars } from '@/components/FoodMenuModal';
 import ItineraryEditor from '@/components/ItineraryEditor';
-import { c, MONO, DESTINATIONS } from '@/lib/data';
+import { DESTINATIONS } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
-import { computeAmpScore, getTier, effectiveVisaProb, TIER_META } from '@/lib/amp';
+import { computeAmpScore, effectiveVisaProb, getTier, TIER_META } from '@/lib/amp';
 import type { BookingType, FoodSpot } from '@/lib/types';
 
-export default function TripPage() {
-  const router = useRouter();
-  const params = useParams();
+interface TripPageProps {
+  params: Promise<{ id: string }>;
+}
 
-  const _hasHydrated           = usePassageStore(s => s._hasHydrated);
-  const passport               = usePassageStore(s => s.passport);
-  const amp                    = usePassageStore(s => s.amp);
+const CARD = 'flex h-full flex-col border border-ghost p-5';
+
+export default function TripPage({ params }: TripPageProps) {
+  const { id } = use(params);
+  const router = useRouter();
+
+  const _hasHydrated = usePassageStore(s => s._hasHydrated);
+  const passport = usePassageStore(s => s.passport);
+  const amp = usePassageStore(s => s.amp);
   const setSelectedDestination = usePassageStore(s => s.setSelectedDestination);
 
-  const [tab, setTab]                   = useState<'plan' | 'food' | 'book'>('plan');
+  const [tab, setTab] = useState<'plan' | 'food' | 'book'>('plan');
   const [bookingModal, setBookingModal] = useState<BookingType | null>(null);
-  const [foodSpot, setFoodSpot]         = useState<FoodSpot | null>(null);
+  const [foodSpot, setFoodSpot] = useState<FoodSpot | null>(null);
 
-  const dest = DESTINATIONS.find(d => d.id === params.id);
+  const dest = DESTINATIONS.find(d => d.id === id);
 
   useEffect(() => {
-    if (_hasHydrated && !passport) { router.replace('/'); return; }
+    if (_hasHydrated && !passport) {
+      router.replace('/');
+      return;
+    }
     if (dest) setSelectedDestination(dest);
-    return () => { setSelectedDestination(null); };
+    return () => setSelectedDestination(null);
   }, [_hasHydrated, passport, dest, setSelectedDestination, router]);
 
   if (!_hasHydrated || !passport || !dest) return null;
 
   const baseProb = dest.visaProb[passport] || 50;
-  const tier     = getTier(computeAmpScore(amp));
+  const tier = getTier(computeAmpScore(amp));
   const tierMeta = TIER_META[tier];
-  const prob     = effectiveVisaProb(baseProb, tier);
-  const probColor = prob > 80 ? c.sub : '#cc9900';
-
-  const cardStyle: React.CSSProperties = {
-    border: `1px solid ${c.ghost}`,
-    padding: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-  };
+  const prob = effectiveVisaProb(baseProb, tier);
+  const probHigh = prob > 80;
 
   return (
-    <div style={{ fontFamily: MONO, minHeight: '100vh', fontSize: '0.875rem', lineHeight: 1.55 }}>
+    <div className="min-h-screen text-sm leading-[1.55]">
       <TopBar title={dest.name} right={dest.country} onBack={() => router.push('/discover')} />
 
-      <div style={{ maxWidth: 920, margin: '0 auto', paddingBottom: 80 }}>
-        {/* Hero */}
-        <div style={{ padding: '28px 24px 0' }}>
-          <div style={{ fontSize: '0.5625rem', color: c.faint, letterSpacing: '0.14em', marginBottom: 10 }}>
+      <div className="mx-auto max-w-[920px] pb-20">
+        <div className="px-6 pt-7">
+          <div className="mb-2.5 text-[0.5625rem] tracking-[0.14em] text-faint">
             {dest.coords} · {dest.region}
           </div>
-          <div style={{ fontSize: '1.875rem', marginBottom: 6, lineHeight: 1.1 }}>{dest.name}</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-            <span style={{ padding: '5px 10px', fontSize: '0.625rem', border: `1px solid ${c.ghost}`, color: c.faint }}>{dest.bestMonths}</span>
-            <span style={{ padding: '5px 10px', fontSize: '0.625rem', border: `1px solid ${c.ghost}`, color: c.faint }}>{dest.avgTemp}</span>
-            <span style={{ padding: '5px 10px', fontSize: '0.625rem', border: `1px solid ${c.ghost}`, color: c.faint }}>{dest.currency}</span>
-            <span style={{ padding: '5px 10px', fontSize: '0.625rem', border: `1px solid ${prob > 80 ? c.ghost : '#440000'}`, color: prob > 80 ? c.sub : '#cc4444' }}>
+          <div className="mb-1.5 text-3xl leading-tight">{dest.name}</div>
+          <div className="mb-6 flex flex-wrap gap-2">
+            <span className="border border-ghost px-2.5 py-[5px] text-[0.625rem] text-faint">
+              {dest.bestMonths}
+            </span>
+            <span className="border border-ghost px-2.5 py-[5px] text-[0.625rem] text-faint">
+              {dest.avgTemp}
+            </span>
+            <span className="border border-ghost px-2.5 py-[5px] text-[0.625rem] text-faint">
+              {dest.currency}
+            </span>
+            <span
+              className={`border px-2.5 py-[5px] text-[0.625rem] ${
+                probHigh ? 'border-ghost text-sub' : 'border-danger-border text-danger'
+              }`}
+            >
               {prob}% VISA
             </span>
-            <span style={{ padding: '5px 10px', fontSize: '0.625rem', border: `1px solid ${tierMeta.color}`, color: tierMeta.color }}>
+            <span
+              className="border px-2.5 py-[5px] text-[0.625rem]"
+              style={{ borderColor: tierMeta.color, color: tierMeta.color }}
+            >
               {tierMeta.short}
             </span>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: `1px solid ${c.ghost}`, padding: '0 24px' }}>
+        <div className="flex border-b border-ghost px-6">
           {(['plan', 'food', 'book'] as const).map(t => (
             <button
               key={t}
+              type="button"
               onClick={() => setTab(t)}
-              style={{
-                background: 'none', border: 'none',
-                borderBottom: tab === t ? `1px solid ${c.fg}` : '1px solid transparent',
-                color: tab === t ? c.fg : c.faint, fontFamily: MONO,
-                fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase',
-                padding: '14px 16px', cursor: 'pointer', marginBottom: -1,
-              }}
+              className={`-mb-px cursor-pointer border-b border-t-0 border-l-0 border-r-0 bg-transparent px-4 py-3.5 font-mono text-xs uppercase tracking-[0.1em] ${
+                tab === t ? 'border-fg text-fg' : 'border-transparent text-faint'
+              }`}
             >
               {t === 'plan' ? 'Itinerary' : t === 'food' ? 'Food spots' : 'Book'}
             </button>
           ))}
         </div>
 
-        {/* Plan tab — interactive editor */}
         {tab === 'plan' && (
-          <div style={{ padding: '24px' }}>
+          <div className="p-6">
             <ItineraryEditor dest={dest} />
           </div>
         )}
 
-        {/* Food tab — clickable cards open menu modal */}
         {tab === 'food' && (
-          <div style={{ padding: '24px' }}>
-            <div style={{ fontSize: '0.6875rem', color: c.faint, marginBottom: 18, lineHeight: 1.6 }}>
+          <div className="p-6">
+            <div className="mb-[18px] text-[0.6875rem] leading-relaxed text-faint">
               {dest.foodSpots.length} spots submitted by travelers. Click any to see the menu.
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 14 }}>
+            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
               {dest.foodSpots.map(spot => (
                 <button
                   key={spot.id}
+                  type="button"
                   onClick={() => setFoodSpot(spot)}
-                  style={{
-                    textAlign: 'left',
-                    padding: '18px',
-                    background: c.surface,
-                    border: `1px solid ${c.ghost}`,
-                    cursor: 'pointer',
-                    fontFamily: MONO,
-                    color: c.fg,
-                    transition: 'border-color 0.15s, background 0.15s',
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = c.fg; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = c.ghost; }}
+                  className="flex cursor-pointer flex-col border border-ghost bg-surface p-[18px] text-left font-mono text-fg transition-colors hover:border-fg"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-                    <span style={{ fontSize: '0.9375rem', color: c.fg, lineHeight: 1.3 }}>{spot.name}</span>
-                    <span style={{ fontSize: '0.6875rem', color: c.dim, border: `1px solid ${c.ghost}`, padding: '2px 8px', flexShrink: 0, letterSpacing: '0.05em' }}>
+                  <div className="mb-2 flex items-start justify-between gap-2.5">
+                    <span className="text-[0.9375rem] leading-snug text-fg">{spot.name}</span>
+                    <span className="shrink-0 border border-ghost px-2 py-0.5 text-[0.6875rem] tracking-[0.05em] text-dim">
                       {priceDollars(spot.priceLevel)}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.8125rem', color: c.dim, lineHeight: 1.55, marginBottom: 12, flex: 1 }}>
+                  <div className="mb-3 flex-1 text-[0.8125rem] leading-relaxed text-dim">
                     {spot.desc}
                   </div>
-                  <div style={{ fontSize: '0.625rem', color: c.faint, marginBottom: 4, fontStyle: 'italic' }}>
-                    {spot.type}
+                  <div className="mb-1 text-[0.625rem] italic text-faint">{spot.type}</div>
+                  <div className="text-[0.625rem] text-faint">
+                    submitted by <span className="text-dim">{spot.submittedBy}</span>
                   </div>
-                  <div style={{ fontSize: '0.625rem', color: c.faint }}>
-                    submitted by <span style={{ color: c.dim }}>{spot.submittedBy}</span>
-                  </div>
-                  <div style={{ marginTop: 12, fontSize: '0.5625rem', color: c.fg, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                  <div className="mt-3 text-[0.5625rem] uppercase tracking-[0.14em] text-fg">
                     View menu →
                   </div>
                 </button>
@@ -148,49 +141,59 @@ export default function TripPage() {
           </div>
         )}
 
-        {/* Book tab — aligned grid */}
         {tab === 'book' && (
-          <div style={{ padding: '24px' }}>
-            {/* Section: Flights + Visa side-by-side */}
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ fontSize: '0.5625rem', letterSpacing: '0.16em', color: c.faint, marginBottom: 12, textTransform: 'uppercase' }}>
+          <div className="p-6">
+            <div className="mb-7">
+              <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.16em] text-faint">
                 Flights & visa
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 14 }}>
-                {/* Flight card */}
-                <div style={cardStyle}>
-                  <div style={{ fontSize: '0.5625rem', letterSpacing: '0.14em', color: c.faint, marginBottom: 12, textTransform: 'uppercase' }}>
+              <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
+                <div className={CARD}>
+                  <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
                     Flight
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
-                    <span style={{ fontSize: '1rem' }}>{dest.travelPlan.flights.from} → {dest.travelPlan.flights.to}</span>
-                    <span style={{ fontSize: '1rem', whiteSpace: 'nowrap' }}>{dest.travelPlan.flights.price}</span>
+                  <div className="mb-1.5 flex items-start justify-between gap-2.5">
+                    <span className="text-base">
+                      {dest.travelPlan.flights.from} → {dest.travelPlan.flights.to}
+                    </span>
+                    <span className="whitespace-nowrap text-base">
+                      {dest.travelPlan.flights.price}
+                    </span>
                   </div>
-                  <div style={{ fontSize: '0.8125rem', color: c.dim, marginBottom: 4 }}>{dest.travelPlan.flights.airline}</div>
-                  <div style={{ fontSize: '0.75rem', color: c.faint, flex: 1 }}>{dest.travelPlan.flights.duration} · {dest.travelPlan.flights.stops} stop</div>
+                  <div className="mb-1 text-[0.8125rem] text-dim">
+                    {dest.travelPlan.flights.airline}
+                  </div>
+                  <div className="flex-1 text-xs text-faint">
+                    {dest.travelPlan.flights.duration} · {dest.travelPlan.flights.stops} stop
+                  </div>
                   <button
+                    type="button"
                     onClick={() => setBookingModal('flight')}
-                    style={{ marginTop: 16, width: '100%', padding: '13px', background: 'none', border: `1px solid ${c.fg}`, color: c.fg, fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.08em', cursor: 'pointer', textTransform: 'uppercase' }}
+                    className="mt-4 w-full cursor-pointer border border-fg bg-transparent p-[13px] font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-fg"
                   >
                     @MakeMyTrip — Book flight
                   </button>
                 </div>
 
-                {/* Visa card */}
-                <div style={cardStyle}>
-                  <div style={{ fontSize: '0.5625rem', letterSpacing: '0.14em', color: c.faint, marginBottom: 12, textTransform: 'uppercase' }}>
+                <div className={CARD}>
+                  <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
                     Visa
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
-                    <span style={{ fontSize: '1rem' }}>e-Visa Application</span>
-                    <span style={{ fontSize: '0.75rem', color: probColor, whiteSpace: 'nowrap' }}>{prob}% probability</span>
+                  <div className="mb-1.5 flex items-start justify-between gap-2.5">
+                    <span className="text-base">e-Visa Application</span>
+                    <span
+                      className={`whitespace-nowrap text-xs ${probHigh ? 'text-sub' : 'text-warn'}`}
+                    >
+                      {prob}% probability
+                    </span>
                   </div>
-                  <div style={{ fontSize: '0.8125rem', color: c.dim, lineHeight: 1.6, flex: 1 }}>
+                  <div className="flex-1 text-[0.8125rem] leading-relaxed text-dim">
                     Based on your passport and profile. Processing time: 5–14 days.
                   </div>
                   <button
+                    type="button"
                     onClick={() => setBookingModal('visa')}
-                    style={{ marginTop: 16, width: '100%', padding: '13px', background: c.fg, border: 'none', color: c.bg, fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.08em', cursor: 'pointer', textTransform: 'uppercase' }}
+                    className="mt-4 w-full cursor-pointer border-0 bg-fg p-[13px] font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-bg"
                   >
                     Start visa application
                   </button>
@@ -198,23 +201,25 @@ export default function TripPage() {
               </div>
             </div>
 
-            {/* Section: Hotels */}
             <div>
-              <div style={{ fontSize: '0.5625rem', letterSpacing: '0.16em', color: c.faint, marginBottom: 12, textTransform: 'uppercase' }}>
+              <div className="mb-3 text-[0.5625rem] uppercase tracking-[0.16em] text-faint">
                 Stays
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 14 }}>
+              <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
                 {dest.travelPlan.hotels.map((h, i) => (
-                  <div key={i} style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-                      <span style={{ fontSize: '1rem' }}>{h.name}</span>
-                      <span style={{ fontSize: '0.75rem', color: c.sub, whiteSpace: 'nowrap' }}>{h.price}</span>
+                  <div key={i} className={CARD}>
+                    <div className="mb-2 flex items-start justify-between gap-2.5">
+                      <span className="text-base">{h.name}</span>
+                      <span className="whitespace-nowrap text-xs text-sub">{h.price}</span>
                     </div>
-                    <div style={{ fontSize: '0.625rem', color: c.faint, marginBottom: 10, border: `1px solid ${c.ghost}`, alignSelf: 'flex-start', padding: '3px 8px' }}>{h.type}</div>
-                    <div style={{ fontSize: '0.8125rem', color: c.dim, lineHeight: 1.6, flex: 1 }}>{h.desc}</div>
+                    <div className="mb-2.5 self-start border border-ghost px-2 py-[3px] text-[0.625rem] text-faint">
+                      {h.type}
+                    </div>
+                    <div className="flex-1 text-[0.8125rem] leading-relaxed text-dim">{h.desc}</div>
                     <button
+                      type="button"
                       onClick={() => setBookingModal('hotel')}
-                      style={{ marginTop: 16, width: '100%', padding: '12px', background: 'none', border: `1px solid ${c.faint}`, color: c.dim, fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.08em', cursor: 'pointer', textTransform: 'uppercase' }}
+                      className="mt-4 w-full cursor-pointer border border-faint bg-transparent p-3 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-dim"
                     >
                       @MakeMyTrip — Book stay
                     </button>
@@ -226,12 +231,10 @@ export default function TripPage() {
         )}
       </div>
 
-      {bookingModal && dest && (
+      {bookingModal && (
         <BookingModal type={bookingModal} dest={dest} onClose={() => setBookingModal(null)} />
       )}
-      {foodSpot && (
-        <FoodMenuModal spot={foodSpot} onClose={() => setFoodSpot(null)} />
-      )}
+      {foodSpot && <FoodMenuModal spot={foodSpot} onClose={() => setFoodSpot(null)} />}
     </div>
   );
 }

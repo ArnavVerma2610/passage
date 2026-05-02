@@ -6,18 +6,20 @@ import { writeFileSync, mkdirSync } from 'fs';
 const CRC_TABLE = new Int32Array(256);
 for (let i = 0; i < 256; i++) {
   let c = i;
-  for (let j = 0; j < 8; j++) c = (c & 1) ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+  for (let j = 0; j < 8; j++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
   CRC_TABLE[i] = c;
 }
 function crc32(buf) {
   let c = -1;
-  for (const b of buf) c = CRC_TABLE[(c ^ b) & 0xFF] ^ (c >>> 8);
+  for (const b of buf) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
   return (c ^ -1) >>> 0;
 }
 function chunk(type, data = Buffer.alloc(0)) {
   const t = Buffer.from(type);
-  const len = Buffer.allocUnsafe(4); len.writeUInt32BE(data.length);
-  const crc = Buffer.allocUnsafe(4); crc.writeUInt32BE(crc32(Buffer.concat([t, data])));
+  const len = Buffer.allocUnsafe(4);
+  len.writeUInt32BE(data.length);
+  const crc = Buffer.allocUnsafe(4);
+  crc.writeUInt32BE(crc32(Buffer.concat([t, data])));
   return Buffer.concat([len, t, data, crc]);
 }
 
@@ -26,9 +28,10 @@ function makePNG(size) {
   const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
   const ihdr = Buffer.allocUnsafe(13);
-  ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
-  ihdr.writeUInt8(8, 8);  // bit depth
-  ihdr.writeUInt8(2, 9);  // RGB
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr.writeUInt8(8, 8); // bit depth
+  ihdr.writeUInt8(2, 9); // RGB
   ihdr.fill(0, 10);
 
   const rowBytes = 1 + size * 3;

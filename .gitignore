@@ -31,7 +31,7 @@ yarn-error.log*
 # vercel
 .vercel
 
-# PWA — generated at build time, not committed
+# PWA / Serwist — generated at build time, not committed
 /public/sw.js
 /public/sw.js.map
 /public/workbox-*.js

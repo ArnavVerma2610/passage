@@ -22,14 +22,14 @@ interface PassageStore {
   identity: Identity | null;
   amp: AmpProfile;
   ampCompleted: boolean;
-  passport: string;            // mirrors identity.passportCountry — kept for legacy reads
+  passport: string; // mirrors identity.passportCountry — kept for legacy reads
   profile: ProfileValues;
   fontSize: number;
   fontSizeSet: boolean;
   theme: 'dark' | 'light';
   customItineraries: Record<string, ItineraryDay[]>;
   itineraryStyle: Record<string, ItineraryStyle>;
-  discoverRound: number;       // increments every time the deck is reset
+  discoverRound: number; // increments every time the deck is reset
 
   // ── session ────────────────────────────────────────────────────────────────
   swipedDestinations: SwipedEntry[];
@@ -71,7 +71,12 @@ interface PassageStore {
 }
 
 const DEFAULT_PROFILE: ProfileValues = {
-  cuisine: 5, distance: 5, budget: 5, risk: 5, language: 5, solitude: 5,
+  cuisine: 5,
+  distance: 5,
+  budget: 5,
+  risk: 5,
+  language: 5,
+  solitude: 5,
 };
 
 const ssrSafeStorage = createJSONStorage(() => {
@@ -87,7 +92,7 @@ function renumberDays(days: ItineraryDay[]): ItineraryDay[] {
 
 export const usePassageStore = create<PassageStore>()(
   persist(
-    (set) => ({
+    set => ({
       user: null,
       identity: null,
       amp: defaultAmpProfile(),
@@ -105,43 +110,45 @@ export const usePassageStore = create<PassageStore>()(
       activeTab: 'discover',
       _hasHydrated: false,
 
-      setHasHydrated: (v) => set({ _hasHydrated: v }),
-      setUser: (user) => set({ user }),
-      signOut: () => set({
-        user: null,
-        identity: null,
-        amp: defaultAmpProfile(),
-        ampCompleted: false,
-        passport: '',
-        swipedDestinations: [],
-        customItineraries: {},
-        itineraryStyle: {},
-      }),
+      setHasHydrated: v => set({ _hasHydrated: v }),
+      setUser: user => set({ user }),
+      signOut: () =>
+        set({
+          user: null,
+          identity: null,
+          amp: defaultAmpProfile(),
+          ampCompleted: false,
+          passport: '',
+          swipedDestinations: [],
+          customItineraries: {},
+          itineraryStyle: {},
+        }),
 
-      setIdentity: (identity) => set({ identity, passport: identity.passportCountry }),
-      setPassport: (code) => set((s) => ({
-        passport: code,
-        identity: s.identity ? { ...s.identity, passportCountry: code } : s.identity,
-      })),
-      setProfile: (values) => set({ profile: values }),
-      setFontSize: (size) => set({ fontSize: size }),
+      setIdentity: identity => set({ identity, passport: identity.passportCountry }),
+      setPassport: code =>
+        set(s => ({
+          passport: code,
+          identity: s.identity ? { ...s.identity, passportCountry: code } : s.identity,
+        })),
+      setProfile: values => set({ profile: values }),
+      setFontSize: size => set({ fontSize: size }),
       confirmFontSize: () => set({ fontSizeSet: true }),
-      setTheme: (t) => set({ theme: t }),
-      toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+      setTheme: t => set({ theme: t }),
+      toggleTheme: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
 
       setAmpField: (categoryKey, fieldKey, value) =>
-        set((s) => ({
+        set(s => ({
           amp: {
             ...s.amp,
             [categoryKey]: { ...(s.amp[categoryKey] ?? {}), [fieldKey]: value },
           },
         })),
-      setAmp: (amp) => set({ amp }),
-      setAmpCompleted: (v) => set({ ampCompleted: v }),
+      setAmp: amp => set({ amp }),
+      setAmpCompleted: v => set({ ampCompleted: v }),
       resetAmp: () => set({ amp: defaultAmpProfile(), ampCompleted: false }),
 
       addSwipedDestination: (id, dir) =>
-        set((s) => {
+        set(s => {
           const existing = s.swipedDestinations.findIndex(e => e.id === id);
           if (existing >= 0) {
             const updated = [...s.swipedDestinations];
@@ -150,13 +157,12 @@ export const usePassageStore = create<PassageStore>()(
           }
           return { swipedDestinations: [...s.swipedDestinations, { id, dir }] };
         }),
-      removeSwipedDestination: (id) =>
-        set((s) => ({ swipedDestinations: s.swipedDestinations.filter(e => e.id !== id) })),
-      clearSwipes: () =>
-        set((s) => ({ swipedDestinations: [], discoverRound: s.discoverRound + 1 })),
+      removeSwipedDestination: id =>
+        set(s => ({ swipedDestinations: s.swipedDestinations.filter(e => e.id !== id) })),
+      clearSwipes: () => set(s => ({ swipedDestinations: [], discoverRound: s.discoverRound + 1 })),
 
-      setSelectedDestination: (dest) => set({ selectedDestination: dest }),
-      setActiveTab: (tab) => set({ activeTab: tab }),
+      setSelectedDestination: dest => set({ selectedDestination: dest }),
+      setActiveTab: tab => set({ activeTab: tab }),
 
       resetOnboarding: () =>
         set({
@@ -175,25 +181,25 @@ export const usePassageStore = create<PassageStore>()(
         }),
 
       setItinerary: (destId, days) =>
-        set((s) => ({
+        set(s => ({
           customItineraries: { ...s.customItineraries, [destId]: renumberDays(days) },
         })),
-      clearItinerary: (destId) =>
-        set((s) => {
+      clearItinerary: destId =>
+        set(s => {
           const { [destId]: _omit, ...rest } = s.customItineraries;
           return { customItineraries: rest };
         }),
       setItineraryStyle: (destId, style) =>
-        set((s) => ({ itineraryStyle: { ...s.itineraryStyle, [destId]: style } })),
+        set(s => ({ itineraryStyle: { ...s.itineraryStyle, [destId]: style } })),
       updateItineraryDay: (destId, idx, patch) =>
-        set((s) => {
+        set(s => {
           const current = s.customItineraries[destId];
           if (!current) return s;
           const next = current.map((d, i) => (i === idx ? { ...d, ...patch } : d));
           return { customItineraries: { ...s.customItineraries, [destId]: renumberDays(next) } };
         }),
       addItineraryDay: (destId, day) =>
-        set((s) => {
+        set(s => {
           const current = s.customItineraries[destId] ?? [];
           return {
             customItineraries: {
@@ -203,7 +209,7 @@ export const usePassageStore = create<PassageStore>()(
           };
         }),
       removeItineraryDay: (destId, idx) =>
-        set((s) => {
+        set(s => {
           const current = s.customItineraries[destId];
           if (!current) return s;
           const next = current.filter((_, i) => i !== idx);
@@ -213,7 +219,7 @@ export const usePassageStore = create<PassageStore>()(
     {
       name: 'passage-store',
       storage: ssrSafeStorage,
-      partialize: (state) => ({
+      partialize: state => ({
         user: state.user,
         identity: state.identity,
         amp: state.amp,
@@ -227,9 +233,9 @@ export const usePassageStore = create<PassageStore>()(
         itineraryStyle: state.itineraryStyle,
         discoverRound: state.discoverRound,
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => state => {
         state?.setHasHydrated(true);
       },
-    }
-  )
+    },
+  ),
 );

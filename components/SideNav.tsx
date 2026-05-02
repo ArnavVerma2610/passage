@@ -1,14 +1,14 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { c, MONO, COUNTRIES_ACCESS } from '@/lib/data';
+import { COUNTRIES_ACCESS } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
 
 const TABS = [
   { key: 'discover', label: 'Discover', href: '/discover' },
-  { key: 'trips',    label: 'Trips',    href: '/trips' },
-  { key: 'chat',     label: 'Chat',     href: '/chat' },
-  { key: 'profile',  label: 'Profile',  href: '/profile' },
+  { key: 'trips', label: 'Trips', href: '/trips' },
+  { key: 'chat', label: 'Chat', href: '/chat' },
+  { key: 'profile', label: 'Profile', href: '/profile' },
 ] as const;
 
 function tabFromPathname(p: string): string {
@@ -20,47 +20,34 @@ function tabFromPathname(p: string): string {
 }
 
 export default function SideNav() {
-  const router   = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
   const passport = usePassageStore(s => s.passport);
-  const active   = tabFromPathname(pathname);
-  const country  = COUNTRIES_ACCESS[passport];
+  const active = tabFromPathname(pathname);
+  const country = COUNTRIES_ACCESS[passport];
 
   return (
-    <div style={{
-      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-      borderRight: `1px solid ${c.ghost}`, fontFamily: MONO,
-    }}>
-      {/* Logo */}
-      <div style={{ padding: '24px 24px 20px', borderBottom: `1px solid ${c.ghost}` }}>
-        <div style={{ fontSize: '0.625rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: c.fg }}>PASSAGE</div>
-        <div style={{ fontSize: '0.625rem', color: c.faint, marginTop: 4, letterSpacing: '0.05em' }}>
+    <div className="flex h-full w-full flex-col border-r border-ghost font-mono">
+      <div className="border-b border-ghost px-6 pb-5 pt-6">
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-fg">PASSAGE</div>
+        <div className="mt-1 text-[0.625rem] tracking-[0.05em] text-faint">
           Calibrated to your passport
         </div>
       </div>
 
-      {/* Nav items */}
-      <nav style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
+      <nav className="flex-1 overflow-y-auto py-3">
         {TABS.map(tab => {
           const isActive = active === tab.key;
           return (
             <button
               key={tab.key}
+              type="button"
               onClick={() => router.push(tab.href)}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                background: isActive ? c.surface : 'none',
-                border: 'none',
-                borderLeft: `2px solid ${isActive ? c.fg : 'transparent'}`,
-                padding: '11px 22px',
-                cursor: 'pointer', fontFamily: MONO,
-                fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase',
-                color: isActive ? c.fg : c.faint,
-                transition: 'all 0.15s',
-                marginBottom: 2,
-              }}
-              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.color = c.dim; }}
-              onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.color = c.faint; }}
+              className={`mb-0.5 block w-full cursor-pointer border-l-2 px-[22px] py-[11px] text-left font-mono text-xs uppercase tracking-[0.12em] transition-all ${
+                isActive
+                  ? 'border-fg bg-surface text-fg'
+                  : 'border-transparent bg-transparent text-faint hover:text-dim'
+              }`}
             >
               {tab.label}
             </button>
@@ -68,15 +55,19 @@ export default function SideNav() {
         })}
       </nav>
 
-      {/* Passport info */}
       {country && (
-        <div style={{ padding: '16px 24px', borderTop: `1px solid ${c.ghost}` }}>
-          <div style={{ fontSize: '0.5625rem', color: c.faint, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Passport</div>
-          <div style={{ fontSize: '0.8125rem', color: c.sub }}>{country.name}</div>
-          <div style={{ marginTop: 6, width: '100%', height: 1, background: c.ghost, position: 'relative' }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, height: 1, width: `${country.score}%`, background: c.faint }} />
+        <div className="border-t border-ghost px-6 py-4">
+          <div className="mb-1.5 text-[0.5625rem] uppercase tracking-[0.12em] text-faint">
+            Passport
           </div>
-          <div style={{ fontSize: '0.625rem', color: c.faint, marginTop: 4 }}>{country.score}/100 mobility</div>
+          <div className="text-[0.8125rem] text-sub">{country.name}</div>
+          <div className="relative mt-1.5 h-px w-full bg-ghost">
+            <div
+              className="absolute left-0 top-0 h-px bg-faint"
+              style={{ width: `${country.score}%` }}
+            />
+          </div>
+          <div className="mt-1 text-[0.625rem] text-faint">{country.score}/100 mobility</div>
         </div>
       )}
     </div>

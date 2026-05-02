@@ -114,9 +114,9 @@ export interface User {
 
 export interface Identity {
   fullName: string;
-  dateOfBirth: string;       // ISO yyyy-mm-dd or empty
+  dateOfBirth: string; // ISO yyyy-mm-dd or empty
   passportNumber: string;
-  passportCountry: string;   // ISO 2-letter code
+  passportCountry: string; // ISO 2-letter code
   documentVerified: boolean; // demo: always true after submit
 }
 

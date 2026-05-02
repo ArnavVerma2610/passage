@@ -1,23 +1,15 @@
 'use client';
 
-import {
-  motion,
-  useMotionValue,
-  useTransform,
-  animate,
-  type PanInfo,
-} from 'framer-motion';
-import { c, MONO } from '@/lib/data';
+import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { usePassageStore } from '@/lib/store';
-import { computeAmpScore, getTier, effectiveVisaProb, TIER_META } from '@/lib/amp';
+import { computeAmpScore, effectiveVisaProb, getTier, TIER_META } from '@/lib/amp';
 import type { Destination } from '@/lib/types';
 
-const DIST_THRESHOLD = 100; // px — gesture offset to trigger swipe
-const VEL_THRESHOLD  = 500; // px/s — velocity to trigger swipe
+const DIST_THRESHOLD = 100;
+const VEL_THRESHOLD = 500;
 
-// Spring configs
-const EXIT_SPRING  = { type: 'spring', stiffness: 380, damping: 34, restDelta: 0.5 } as const;
-const SNAP_SPRING  = { type: 'spring', stiffness: 520, damping: 38 } as const;
+const EXIT_SPRING = { type: 'spring', stiffness: 380, damping: 34, restDelta: 0.5 } as const;
+const SNAP_SPRING = { type: 'spring', stiffness: 520, damping: 38 } as const;
 
 interface SwipeCardProps {
   dest: Destination;
@@ -26,20 +18,17 @@ interface SwipeCardProps {
 }
 
 export default function SwipeCard({ dest, passport, onSwipe }: SwipeCardProps) {
-  const x      = useMotionValue(0);
+  const x = useMotionValue(0);
   const rotate = useTransform(x, [-320, 320], [-18, 18]);
-
-  // Indicator labels fade in as the card is dragged past 40 px
-  const leftOpacity  = useTransform(x, [-110, -40], [1, 0]);
+  const leftOpacity = useTransform(x, [-110, -40], [1, 0]);
   const rightOpacity = useTransform(x, [40, 110], [0, 1]);
 
   const baseProb = dest.visaProb[passport] || 50;
-  const amp      = usePassageStore(s => s.amp);
-  const tier     = getTier(computeAmpScore(amp));
-  const meta     = TIER_META[tier];
-  const prob     = effectiveVisaProb(baseProb, tier);
+  const amp = usePassageStore(s => s.amp);
+  const tier = getTier(computeAmpScore(amp));
+  const meta = TIER_META[tier];
+  const prob = effectiveVisaProb(baseProb, tier);
 
-  // ── exit animation ────────────────────────────────────────────────────────
   const triggerExit = async (dir: 'left' | 'right') => {
     await animate(x, dir === 'right' ? 640 : -640, EXIT_SPRING);
     onSwipe(dir);
@@ -52,136 +41,159 @@ export default function SwipeCard({ dest, passport, onSwipe }: SwipeCardProps) {
     } else if (offset.x > DIST_THRESHOLD || velocity.x > VEL_THRESHOLD) {
       void triggerExit('right');
     } else {
-      // snap back to centre with a tight spring
       void animate(x, 0, SNAP_SPRING);
     }
   };
 
-  return (
-    <div style={{ padding: '0 16px', position: 'relative' }}>
+  // Visa probability gets one of three theme-aware colour bands.
+  const probClass =
+    prob > 80
+      ? 'border-success-border text-success'
+      : prob > 50
+        ? 'border-warn-border text-warn'
+        : 'border-danger-border text-danger';
 
-      {/* ── directional labels ──────────────────────────────────────────── */}
+  return (
+    <div className="relative px-4">
       <motion.div
-        style={{
-          position: 'absolute', top: 20, left: 28, zIndex: 10,
-          fontSize: 12, letterSpacing: '0.1em', color: c.danger,
-          opacity: leftOpacity, pointerEvents: 'none',
-        }}
+        className="pointer-events-none absolute left-7 top-5 z-10 text-xs tracking-[0.1em] text-danger"
+        style={{ opacity: leftOpacity }}
       >
         NOT NOW
       </motion.div>
       <motion.div
-        style={{
-          position: 'absolute', top: 20, right: 28, zIndex: 10,
-          fontSize: 12, letterSpacing: '0.1em', color: '#558855',
-          opacity: rightOpacity, pointerEvents: 'none',
-        }}
+        className="pointer-events-none absolute right-7 top-5 z-10 text-xs tracking-[0.1em] text-success"
+        style={{ opacity: rightOpacity }}
       >
         INTERESTED
       </motion.div>
 
-      {/* ── draggable card ──────────────────────────────────────────────── */}
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.7}
-        style={{ x, rotate, position: 'relative', zIndex: 1, border: `1px solid ${c.ghost}`, userSelect: 'none', touchAction: 'pan-y' }}
         whileDrag={{ cursor: 'grabbing' }}
         onDragEnd={handleDragEnd}
+        className="relative z-[1] touch-pan-y select-none border border-ghost"
+        style={{ x, rotate }}
       >
-        {/* Header */}
-        <div style={{ padding: '24px 24px 0' }}>
-          <div style={{ fontSize: 10, color: c.faint, letterSpacing: '0.15em', marginBottom: 8 }}>{dest.coords}</div>
-          <div style={{ fontSize: 32, fontFamily: MONO, marginBottom: 2 }}>{dest.name}</div>
-          <div style={{ fontSize: 13, color: c.dim, marginBottom: 4 }}>{dest.country}</div>
-          <div style={{ fontSize: 11, color: c.faint, marginBottom: 16 }}>{dest.region}</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-            <span style={{ padding: '5px 10px', fontSize: 10, letterSpacing: '0.08em', border: `1px solid ${prob > 80 ? c.faint : prob > 50 ? '#553300' : '#550000'}`, color: prob > 80 ? c.sub : prob > 50 ? '#aa7700' : '#aa0000' }}>
+        <div className="px-6 pt-6">
+          <div className="mb-2 text-[10px] tracking-[0.15em] text-faint">{dest.coords}</div>
+          <div className="mb-0.5 font-mono text-3xl">{dest.name}</div>
+          <div className="mb-1 text-[13px] text-dim">{dest.country}</div>
+          <div className="mb-4 text-[11px] text-faint">{dest.region}</div>
+          <div className="mb-5 flex flex-wrap gap-2">
+            <span className={`border px-2.5 py-[5px] text-[10px] tracking-[0.08em] ${probClass}`}>
               {prob}% VISA PROB
             </span>
-            <span style={{ padding: '5px 10px', fontSize: 10, letterSpacing: '0.08em', border: `1px solid ${meta.color}`, color: meta.color }}>
+            <span
+              className="border px-2.5 py-[5px] text-[10px] tracking-[0.08em]"
+              style={{ borderColor: meta.color, color: meta.color }}
+            >
               {meta.short}
             </span>
-            <span style={{ padding: '5px 10px', fontSize: 10, letterSpacing: '0.08em', border: `1px solid ${c.ghost}`, color: c.faint }}>
+            <span className="border border-ghost px-2.5 py-[5px] text-[10px] tracking-[0.08em] text-faint">
               {dest.bestMonths}
             </span>
-            <span style={{ padding: '5px 10px', fontSize: 10, letterSpacing: '0.08em', border: `1px solid ${c.ghost}`, color: c.faint }}>
+            <span className="border border-ghost px-2.5 py-[5px] text-[10px] tracking-[0.08em] text-faint">
               FRICTION {dest.frictionLevel}/100
             </span>
           </div>
         </div>
 
-        {/* Voice note */}
-        <div style={{ padding: '0 24px', marginBottom: 20 }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: c.faint, marginBottom: 8, textTransform: 'uppercase' }}>Someone who lives here</div>
-          <div style={{ background: c.surface, padding: '14px 16px', borderLeft: `2px solid ${c.ghost}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', border: `1px solid ${c.faint}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: c.faint }}>▶</div>
-              <div style={{ flex: 1, height: 1, background: c.ghost, position: 'relative' }}>
-                <div style={{ position: 'absolute', left: 0, top: -2, width: 6, height: 6, borderRadius: '50%', background: c.faint }} />
+        <div className="px-6 lg:grid lg:grid-cols-2 lg:gap-x-8">
+          <div className="mb-5">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.12em] text-faint">
+              Someone who lives here
+            </div>
+            <div className="border-l-2 border-ghost bg-surface px-4 py-3.5">
+              <div className="mb-2.5 flex items-center gap-2.5">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full border border-faint text-[8px] text-faint">
+                  ▶
+                </div>
+                <div className="relative h-px flex-1 bg-ghost">
+                  <div className="absolute -top-0.5 left-0 h-1.5 w-1.5 rounded-full bg-faint" />
+                </div>
+                <span className="text-[10px] text-faint">{dest.voiceDuration}</span>
               </div>
-              <span style={{ fontSize: 10, color: c.faint }}>{dest.voiceDuration}</span>
+              <div className="text-[13px] italic leading-snug text-dim">
+                &ldquo;{dest.voiceNote}&rdquo;
+              </div>
             </div>
-            <div style={{ fontSize: 13, color: c.dim, fontStyle: 'italic', lineHeight: 1.5 }}>"{dest.voiceNote}"</div>
           </div>
-        </div>
 
-        {/* Prompts */}
-        <div style={{ padding: '0 24px', marginBottom: 20 }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: c.faint, marginBottom: 8, textTransform: 'uppercase' }}>This place asks you</div>
-          {dest.prompts.map((p, i) => (
-            <div key={i} style={{ padding: '12px 0', borderBottom: `1px solid ${c.ghost}`, fontSize: 13, color: c.sub, lineHeight: 1.5 }}>{p}</div>
-          ))}
-        </div>
-
-        {/* Food preview */}
-        <div style={{ padding: '0 24px', marginBottom: 20 }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: c.faint, marginBottom: 8, textTransform: 'uppercase' }}>
-            Hidden spots — {dest.foodSpots.length} unlocked on arrival
-          </div>
-          <div style={{ background: c.surface, padding: '14px 16px' }}>
-            <div style={{ fontSize: 13, color: c.dim, lineHeight: 1.5, marginBottom: 6 }}>{dest.foodSpots[0].desc}</div>
-            <div style={{ fontSize: 10, color: c.faint, fontStyle: 'italic' }}>+ {dest.foodSpots.length - 1} more spots revealed when you commit</div>
-          </div>
-        </div>
-
-        {/* Friction */}
-        <div style={{ padding: '0 24px', marginBottom: 16 }}>
-          <div style={{ width: '100%', height: 2, background: c.ghost, marginBottom: 12, position: 'relative' }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, height: 2, width: `${dest.frictionLevel}%`, background: c.fg }} />
-          </div>
-          {Object.entries(dest.friction).map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 12 }}>
-              <span style={{ color: c.faint, textTransform: 'capitalize' }}>{k}</span>
-              <span style={{ color: c.dim, textAlign: 'right', maxWidth: '65%' }}>{v}</span>
+          <div className="mb-5">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.12em] text-faint">
+              This place asks you
             </div>
-          ))}
+            {dest.prompts.map((p, i) => (
+              <div key={i} className="border-b border-ghost py-3 text-[13px] leading-snug text-sub">
+                {p}
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-5">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.12em] text-faint">
+              Hidden spots — {dest.foodSpots.length} unlocked on arrival
+            </div>
+            <div className="bg-surface px-4 py-3.5">
+              <div className="mb-1.5 text-[13px] leading-snug text-dim">
+                {dest.foodSpots[0].desc}
+              </div>
+              <div className="text-[10px] italic text-faint">
+                + {dest.foodSpots.length - 1} more spots revealed when you commit
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="relative mb-3 h-0.5 w-full bg-ghost">
+              <div
+                className="absolute left-0 top-0 h-0.5 bg-fg"
+                style={{ width: `${dest.frictionLevel}%` }}
+              />
+            </div>
+            {Object.entries(dest.friction).map(([k, v]) => (
+              <div key={k} className="flex justify-between py-1.5 text-xs">
+                <span className="capitalize text-faint">{k}</span>
+                <span className="max-w-[65%] text-right text-dim">{v}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Trivia */}
-        <div style={{ padding: '14px 24px', background: '#050505', fontSize: 13, color: c.dim, lineHeight: 1.5 }}>
+        <div className="bg-surface-2 px-6 py-3.5 text-[13px] leading-snug text-dim">
           {dest.trivia}
         </div>
 
-        {/* Denied */}
         {dest.deniedCount > 0 && (
-          <div style={{ padding: '14px 24px', borderTop: `1px solid ${c.ghost}`, display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: c.danger }}>{dest.deniedCount} people were denied entry here</span>
-            <span style={{ fontSize: 10, color: c.faint, textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer' }}>read</span>
+          <div className="flex justify-between border-t border-ghost px-6 py-3.5">
+            <span className="text-xs text-danger">
+              {dest.deniedCount} people were denied entry here
+            </span>
+            <span className="cursor-pointer text-[10px] text-faint underline underline-offset-[3px]">
+              read
+            </span>
           </div>
         )}
       </motion.div>
 
-      {/* ── action buttons ──────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 20, padding: '20px 0' }}>
+      <div className="flex justify-center gap-5 py-5">
         <button
+          type="button"
           onClick={() => void triggerExit('left')}
-          style={{ width: 52, height: 52, borderRadius: '50%', border: `1px solid ${c.faint}`, background: 'none', color: c.dim, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >✕</button>
+          className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border border-faint bg-transparent text-lg text-dim"
+        >
+          ✕
+        </button>
         <button
+          type="button"
           onClick={() => void triggerExit('right')}
-          style={{ width: 52, height: 52, borderRadius: '50%', border: '1px solid #fff', background: 'none', color: c.fg, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >→</button>
+          className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border border-fg bg-transparent text-lg text-fg"
+        >
+          →
+        </button>
       </div>
     </div>
   );

@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import SwipeCard from './SwipeCard';
-import { c, MONO, DESTINATIONS } from '@/lib/data';
+import { DESTINATIONS } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
 import type { Destination } from '@/lib/types';
 
@@ -13,7 +13,7 @@ interface SwipeDeckProps {
 }
 
 // Seeded Fisher-Yates shuffle so each `discoverRound` produces a stable but
-// different ordering of the destinations. Pure function => same input, same output.
+// different ordering of the destinations.
 function seededShuffle<T>(arr: T[], seed: number): T[] {
   const out = arr.slice();
   let s = (seed * 9301 + 49297) % 233280;
@@ -27,22 +27,20 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
 
 export default function SwipeDeck({ passport }: SwipeDeckProps) {
   const router = useRouter();
-  const swipedDestinations    = usePassageStore(s => s.swipedDestinations);
-  const discoverRound         = usePassageStore(s => s.discoverRound);
-  const addSwipedDestination  = usePassageStore(s => s.addSwipedDestination);
-  const clearSwipes           = usePassageStore(s => s.clearSwipes);
+  const swipedDestinations = usePassageStore(s => s.swipedDestinations);
+  const discoverRound = usePassageStore(s => s.discoverRound);
+  const addSwipedDestination = usePassageStore(s => s.addSwipedDestination);
+  const clearSwipes = usePassageStore(s => s.clearSwipes);
 
-  // Build the queue: skip everything already swiped this round, then shuffle
-  // by the round counter so each reset reshuffles the whole deck.
   const queue: Destination[] = useMemo(() => {
     const swipedIds = new Set(swipedDestinations.map(s => s.id));
     const ordered = seededShuffle(DESTINATIONS, discoverRound + 1);
     return ordered.filter(d => !swipedIds.has(d.id));
   }, [swipedDestinations, discoverRound]);
 
-  const top    = queue[0];
-  const next   = queue[1];
-  const after  = queue[2];
+  const top = queue[0];
+  const next = queue[1];
+  const after = queue[2];
 
   const savedCount = swipedDestinations.filter(s => s.dir === 'right').length;
 
@@ -53,28 +51,32 @@ export default function SwipeDeck({ passport }: SwipeDeckProps) {
 
   if (queue.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: '0 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: '0.625rem', color: c.faint, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>End of round {discoverRound + 1}</div>
-        <div style={{ fontSize: '1rem', color: c.fg, marginBottom: 8, lineHeight: 1.4 }}>
-          You've seen every destination this round.
+      <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <div className="mb-3 text-[0.625rem] uppercase tracking-[0.18em] text-faint">
+          End of round {discoverRound + 1}
         </div>
-        <div style={{ fontSize: '0.8125rem', color: c.dim, lineHeight: 1.6, marginBottom: 28, maxWidth: 420 }}>
+        <div className="mb-2 text-base leading-snug text-fg">
+          You&apos;ve seen every destination this round.
+        </div>
+        <div className="mb-7 max-w-[420px] text-[0.8125rem] leading-relaxed text-dim">
           {savedCount > 0
             ? `${savedCount} saved to your trips. Regenerate to shuffle the deck and surface them in a new order.`
             : 'Nothing saved this round. Regenerate the deck and try a slower second pass.'}
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className="flex flex-wrap justify-center gap-2.5">
           {savedCount > 0 && (
             <button
+              type="button"
               onClick={() => router.push('/trips')}
-              style={{ background: c.fg, border: 'none', color: c.bg, fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '12px 22px', cursor: 'pointer' }}
+              className="cursor-pointer border-0 bg-fg px-[22px] py-3 font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-bg"
             >
               View trips ({savedCount})
             </button>
           )}
           <button
+            type="button"
             onClick={() => clearSwipes()}
-            style={{ background: 'none', border: `1px solid ${c.fg}`, color: c.fg, fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '12px 22px', cursor: 'pointer' }}
+            className="cursor-pointer border border-fg bg-transparent px-[22px] py-3 font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-fg"
           >
             ↻ Regenerate deck
           </button>
@@ -84,45 +86,30 @@ export default function SwipeDeck({ passport }: SwipeDeckProps) {
   }
 
   return (
-    <div
-      className="mx-auto max-w-[480px] md:max-w-[680px] lg:max-w-[760px]"
-      style={{ position: 'relative', padding: '24px 0 40px', minHeight: 600 }}
-    >
-      {/* progress count */}
-      <div style={{ textAlign: 'center', fontSize: '0.5625rem', color: c.faint, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 14 }}>
+    <div className="relative mx-auto min-h-[600px] max-w-[480px] py-6 pb-10 md:max-w-[760px] lg:max-w-[960px] xl:max-w-[1120px]">
+      <div className="mb-3.5 text-center text-[0.5625rem] uppercase tracking-[0.18em] text-faint">
         round {discoverRound + 1} · {queue.length} left · {savedCount} saved
       </div>
 
-      <div style={{ position: 'relative' }}>
-        {/* Background card 2 (deepest) */}
+      <div className="relative">
         {after && (
           <motion.div
             key={`bg2-${after.id}`}
             initial={{ scale: 0.92, y: 24, opacity: 0.4 }}
             animate={{ scale: 0.92, y: 24, opacity: 0.4 }}
-            style={{
-              position: 'absolute', inset: 0, pointerEvents: 'none',
-              border: `1px solid ${c.ghost}`, background: c.bg,
-              transformOrigin: 'top center',
-            }}
+            className="pointer-events-none absolute inset-0 origin-top border border-ghost bg-bg"
           />
         )}
 
-        {/* Background card 1 */}
         {next && (
           <motion.div
             key={`bg1-${next.id}`}
             initial={{ scale: 0.96, y: 12, opacity: 0.7 }}
             animate={{ scale: 0.96, y: 12, opacity: 0.7 }}
-            style={{
-              position: 'absolute', inset: 0, pointerEvents: 'none',
-              border: `1px solid ${c.ghost}`, background: c.bg,
-              transformOrigin: 'top center',
-            }}
+            className="pointer-events-none absolute inset-0 origin-top border border-ghost bg-bg"
           />
         )}
 
-        {/* Top draggable card */}
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={top.id}
@@ -130,19 +117,14 @@ export default function SwipeDeck({ passport }: SwipeDeckProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            style={{ position: 'relative', zIndex: 2 }}
+            className="relative z-[2]"
           >
-            <SwipeCard
-              dest={top}
-              passport={passport}
-              onSwipe={handleSwipe}
-            />
+            <SwipeCard dest={top} passport={passport} onSwipe={handleSwipe} />
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* swipe instructions */}
-      <div style={{ textAlign: 'center', marginTop: 18, fontSize: '0.625rem', color: c.faint, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+      <div className="mt-[18px] text-center text-[0.625rem] uppercase tracking-[0.12em] text-faint">
         ← skip · save →
       </div>
     </div>

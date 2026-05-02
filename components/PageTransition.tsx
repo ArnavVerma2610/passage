@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { AnimatePresence, motion, type Transition, type TargetAndTransition } from 'framer-motion';
+import { useState } from 'react';
+import { AnimatePresence, motion, type TargetAndTransition, type Transition } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import BottomNav from './BottomNav';
 import SideNav from './SideNav';
 import FontSizeModal from './FontSizeModal';
 
 const NAV_ROOTS = ['/discover', '/trips', '/chat', '/profile', '/trip'];
-const isDetail  = (p: string) => p.startsWith('/trip/');
+const isDetail = (p: string) => p.startsWith('/trip/');
 
 function entryFrom(curr: string, prev: string): TargetAndTransition {
   if (!isDetail(prev) && isDetail(curr)) return { opacity: 0, y: 16 };
@@ -24,45 +24,58 @@ function enterTransition(curr: string, prev: string): Transition {
 
 export default function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const prevRef  = useRef(pathname);
 
-  const initial    = entryFrom(pathname, prevRef.current);
-  const transition = enterTransition(pathname, prevRef.current);
+  // Track the previous path as state so the entry transition for a new route
+  // can be derived from the route it's replacing. Updating state during render
+  // when the input changes is the React-recommended "deriving state" pattern.
+  const [snapshot, setSnapshot] = useState({ curr: pathname, prev: pathname });
+  if (snapshot.curr !== pathname) {
+    setSnapshot({ curr: pathname, prev: snapshot.curr });
+  }
 
-  useEffect(() => { prevRef.current = pathname; }, [pathname]);
+  const initial = entryFrom(pathname, snapshot.prev);
+  const transition = enterTransition(pathname, snapshot.prev);
 
   const showNav = NAV_ROOTS.some(r => pathname.startsWith(r));
 
   return (
-    <div style={{ background: '#000', color: '#fff', minHeight: '100vh' }}>
-      {/* Font size picker — overlay, shown once on first visit */}
+    <div className="min-h-screen bg-bg text-fg">
       <FontSizeModal />
 
       {showNav ? (
-        /* ── authenticated layout: sidebar (md+) + content ── */
         <div className="md:flex md:min-h-screen">
-          <aside className="hidden md:block md:w-52 lg:w-56 shrink-0 sticky top-0 h-screen overflow-y-auto">
+          <aside className="sticky top-0 hidden h-screen shrink-0 overflow-y-auto md:block md:w-52 lg:w-56">
             <SideNav />
           </aside>
 
-          <main className="flex-1 min-w-0">
+          <main className="min-w-0 flex-1">
             <AnimatePresence mode="wait">
-              <motion.div key={pathname} initial={initial} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={transition}>
+              <motion.div
+                key={pathname}
+                initial={initial}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={transition}
+              >
                 {children}
               </motion.div>
             </AnimatePresence>
           </main>
         </div>
       ) : (
-        /* ── unauthenticated layout: full-width centered ── */
         <AnimatePresence mode="wait">
-          <motion.div key={pathname} initial={initial} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={transition}>
+          <motion.div
+            key={pathname}
+            initial={initial}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={transition}
+          >
             {children}
           </motion.div>
         </AnimatePresence>
       )}
 
-      {/* Bottom tab bar — mobile only */}
       {showNav && (
         <div className="md:hidden">
           <BottomNav />

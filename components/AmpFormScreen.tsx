@@ -4,13 +4,7 @@ import { useState } from 'react';
 import OnboardingShell from './OnboardingShell';
 import DotMatrix, { BIG_COMPASS_FRAMES } from './DotMatrix';
 import Btn from './Btn';
-import { c, MONO } from '@/lib/data';
-import {
-  AMP_CATEGORIES,
-  type AmpProfile,
-  categoryScore,
-  computeAmpScore,
-} from '@/lib/amp';
+import { AMP_CATEGORIES, type AmpProfile, categoryScore, computeAmpScore } from '@/lib/amp';
 
 interface AmpFormScreenProps {
   initial: AmpProfile;
@@ -21,7 +15,7 @@ export default function AmpFormScreen({ initial, onComplete }: AmpFormScreenProp
   const [profile, setProfile] = useState<AmpProfile>(initial);
   const [stepIdx, setStepIdx] = useState(0);
 
-  const cat   = AMP_CATEGORIES[stepIdx];
+  const cat = AMP_CATEGORIES[stepIdx];
   const isLast = stepIdx === AMP_CATEGORIES.length - 1;
 
   const setField = (fieldKey: string, value: number) => {
@@ -35,99 +29,81 @@ export default function AmpFormScreen({ initial, onComplete }: AmpFormScreenProp
     if (isLast) onComplete(profile);
     else setStepIdx(stepIdx + 1);
   };
-  const prev = () => { if (stepIdx > 0) setStepIdx(stepIdx - 1); };
+  const prev = () => {
+    if (stepIdx > 0) setStepIdx(stepIdx - 1);
+  };
 
   const totalScore = computeAmpScore(profile);
-  const catScore   = categoryScore(profile, cat.key);
+  const catScore = categoryScore(profile, cat.key);
 
   return (
     <OnboardingShell
       step={`Step 3 — AMP · ${stepIdx + 1} / ${AMP_CATEGORIES.length}`}
       art={<DotMatrix frames={BIG_COMPASS_FRAMES} intervalMs={300} dotSize={6} gap={4} />}
     >
-      {/* Progress dots */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
+      <div className="mb-7 flex gap-1.5">
         {AMP_CATEGORIES.map((_, i) => (
           <div
             key={i}
-            style={{
-              flex: 1,
-              height: 2,
-              background: i <= stepIdx ? c.fg : c.ghost,
-              transition: 'background 0.3s',
-            }}
+            className={`h-0.5 flex-1 transition-colors ${i <= stepIdx ? 'bg-fg' : 'bg-ghost'}`}
           />
         ))}
       </div>
 
-      <div style={{ fontSize: '0.75rem', color: c.faint, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 6 }}>
-        {cat.icon}  {cat.title}
+      <div className="mb-1.5 text-xs uppercase tracking-[0.18em] text-faint">
+        {cat.icon} {cat.title}
       </div>
-      <div style={{ fontSize: '1.5rem', lineHeight: 1.2, marginBottom: 8 }}>
-        {cat.title}
-      </div>
-      <div style={{ fontSize: '0.875rem', color: c.dim, lineHeight: 1.6, marginBottom: 24 }}>
-        {cat.desc}
-      </div>
+      <h2 className="mb-2 text-2xl leading-tight">{cat.title}</h2>
+      <p className="mb-6 text-sm leading-relaxed text-dim">{cat.desc}</p>
 
       {cat.fields.map(f => {
         const value = profile[cat.key]?.[f.key] ?? 5;
         return (
-          <div key={f.key} style={{ marginBottom: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-              <span style={{ fontSize: '0.8125rem', color: c.fg }}>{f.label}</span>
-              <span style={{ fontSize: '0.875rem', color: c.fg, fontFamily: MONO }}>{value}</span>
+          <div key={f.key} className="mb-[22px]">
+            <div className="mb-1 flex items-baseline justify-between">
+              <span className="text-[0.8125rem] text-fg">{f.label}</span>
+              <span className="font-mono text-sm text-fg">{value}</span>
             </div>
             <input
               type="range"
               min={0}
               max={10}
               value={value}
-              onChange={e => setField(f.key, parseInt(e.target.value))}
-              style={{
-                width: '100%',
-                appearance: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                height: 24,
-              }}
+              onChange={e => setField(f.key, parseInt(e.target.value, 10))}
+              className="h-6 w-full cursor-pointer appearance-none bg-transparent"
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: -2 }}>
-              <span style={{ fontSize: '0.625rem', color: c.faint }}>{f.low}</span>
-              <span style={{ fontSize: '0.625rem', color: c.faint }}>{f.high}</span>
+            <div className="-mt-0.5 flex justify-between text-[0.625rem] text-faint">
+              <span>{f.low}</span>
+              <span>{f.high}</span>
             </div>
           </div>
         );
       })}
 
-      {/* Live category + total readout */}
-      <div style={{
-        marginTop: 8, marginBottom: 18,
-        padding: '12px 14px',
-        background: c.surface, border: `1px solid ${c.ghost}`,
-        display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
-      }}>
+      <div className="mb-[18px] mt-2 flex flex-wrap justify-between gap-2 border border-ghost bg-surface px-3.5 py-3">
         <div>
-          <div style={{ fontSize: '0.5625rem', color: c.faint, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          <div className="text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
             Category contribution
           </div>
-          <div style={{ fontSize: '1rem', color: c.fg, fontFamily: MONO }}>
-            {catScore.score} <span style={{ color: c.faint, fontSize: '0.75rem' }}>/ {catScore.max}</span>
+          <div className="font-mono text-base text-fg">
+            {catScore.score} <span className="text-xs text-faint">/ {catScore.max}</span>
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.5625rem', color: c.faint, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+        <div className="text-right">
+          <div className="text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
             AMP running total
           </div>
-          <div style={{ fontSize: '1rem', color: c.fg, fontFamily: MONO }}>
-            {totalScore} <span style={{ color: c.faint, fontSize: '0.75rem' }}>/ 1000</span>
+          <div className="font-mono text-base text-fg">
+            {totalScore} <span className="text-xs text-faint">/ 1000</span>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div className="flex gap-2.5">
         {stepIdx > 0 && (
-          <Btn variant="outline" onClick={prev}>← Back</Btn>
+          <Btn variant="outline" onClick={prev}>
+            ← Back
+          </Btn>
         )}
         <Btn onClick={next}>{isLast ? 'Compute AMP score →' : 'Next category →'}</Btn>
       </div>

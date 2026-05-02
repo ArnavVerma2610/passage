@@ -30,7 +30,9 @@ function mouseInit(point: ScreenPoint, button: 0 | 2 = 0, buttons = button === 2
 function nearestScrollable(start: Element | null) {
   let node: Element | null = start;
   while (node && node !== document.documentElement) {
-    if (node.scrollHeight > node.clientHeight + 1) return node;
+    const style = window.getComputedStyle(node);
+    const canScroll = /(auto|scroll|overlay)/.test(style.overflowY);
+    if (canScroll && node.scrollHeight > node.clientHeight + 1) return node;
     node = node.parentElement;
   }
   return null;
@@ -74,15 +76,16 @@ export function dispatchGestureRightClick(point: ScreenPoint) {
 export function dispatchGestureScroll(dir: GestureScrollDirection, point: ScreenPoint) {
   if (typeof window === 'undefined') return;
 
-  const amount = Math.round(window.innerHeight * 0.62) * (dir === 'down' ? 1 : -1);
+  const amount = Math.round(window.innerHeight * 0.5) * (dir === 'down' ? 1 : -1);
   const target = targetAt(point);
   const scrollable = nearestScrollable(target instanceof Element ? target : null);
-  const behavior: ScrollBehavior = 'smooth';
 
   if (scrollable) {
-    scrollable.scrollBy({ top: amount, behavior });
+    scrollable.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: amount }));
+    scrollable.scrollBy({ top: amount, behavior: 'auto' });
   } else {
-    window.scrollBy({ top: amount, behavior });
+    window.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: amount }));
+    window.scrollBy({ top: amount, behavior: 'auto' });
   }
 }
 

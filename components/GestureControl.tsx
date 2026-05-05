@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHandTracker } from '@/hooks/useHandTracker';
 import {
   dispatchGestureClick,
@@ -37,6 +37,11 @@ interface SpeechRecognitionLike extends EventTarget {
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
 type DictationTarget = HTMLInputElement | HTMLTextAreaElement | HTMLElement;
+
+interface MicRect {
+  top: number;
+  left: number;
+}
 
 interface DictationSession {
   target: DictationTarget;
@@ -129,7 +134,7 @@ const GESTURE_LIST = [
   { name: 'Open-palm swipe', desc: 'Open palm, swipe left or right - skip or save the deck card.' },
   { name: 'Two-palm zoom', desc: 'Show both palms, then move them apart or together - app zoom.' },
   { name: 'Fist', desc: 'Close your hand - pause cursor and actions.' },
-  { name: 'Dictate', desc: 'Focus any text field, then use Dictate to speak text into it.' },
+  { name: 'Dictate', desc: 'Focus any text field - speech starts automatically while gestures are active.' },
 ];
 
 const ACTIVE_GESTURE_LIST = [
@@ -138,7 +143,7 @@ const ACTIVE_GESTURE_LIST = [
   'Hover 300ms: focus text',
   'Two fingers: scroll',
   'Open palm: skip/save',
-  'Focus text: dictate',
+  'Focus text: auto-dictate',
 ];
 
 function labelForPose(pose: HandPose) {
@@ -147,26 +152,55 @@ function labelForPose(pose: HandPose) {
   return pose.toUpperCase();
 }
 
-function cursorStyleForPose(pose: HandPose) {
+function cursorStyleForPose(pose: HandPose, theme: 'dark' | 'light') {
+  const ink = theme === 'light' ? '#000' : '#fff';
+  const glow = theme === 'light' ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.34)';
+
   if (pose === 'pinch') {
     return {
       size: 34,
-      background: '#fff',
-      shadow: '0 0 22px 4px rgba(255,255,255,0.34)',
+      background: ink,
+      ring: ink,
+      shadow: `0 0 22px 4px ${glow}`,
     };
   }
   if (pose === 'zoom') {
     return {
       size: 34,
       background: 'radial-gradient(circle at 35% 35%, rgba(204,153,0,0.95), rgba(204,153,0,0.18))',
+      ring: ink,
       shadow: '0 0 28px 8px rgba(204,153,0,0.25)',
     };
   }
   return {
     size: 28,
-    background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.95), rgba(255,255,255,0.15))',
-    shadow: '0 0 24px 6px rgba(106,156,106,0.24)',
+    background:
+      theme === 'light'
+        ? 'radial-gradient(circle at 35% 35%, rgba(0,0,0,0.95), rgba(0,0,0,0.16))'
+        : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.95), rgba(255,255,255,0.15))',
+    ring: ink,
+    shadow: theme === 'light' ? '0 0 22px 5px rgba(0,0,0,0.18)' : '0 0 24px 6px rgba(106,156,106,0.24)',
   };
+}
+
+function MicIcon({ size = 13 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <path d="M12 19v3" />
+    </svg>
+  );
 }
 
 function getSpeechRecognition() {
@@ -193,6 +227,14 @@ function textTargetAt(point: ScreenPoint) {
   if (!(target instanceof Element)) return null;
   const textTarget = target.closest('input, textarea, [contenteditable="true"]');
   return isTextTarget(textTarget) ? textTarget : null;
+}
+
+function micRectForTarget(target: DictationTarget): MicRect {
+  const rect = target.getBoundingClientRect();
+  return {
+    top: Math.max(8, rect.top + rect.height / 2 - 14),
+    left: Math.min(window.innerWidth - 34, rect.right - 34),
+  };
 }
 
 function replaceDictationText(session: DictationSession, text: string) {
@@ -224,6 +266,7 @@ export default function GestureControl() {
   const setLegendOpen = usePassageStore(s => s.setGestureLegendOpen);
   const gestureScale = usePassageStore(s => s.gestureScale);
   const setGestureScale = usePassageStore(s => s.setGestureScale);
+  const theme = usePassageStore(s => s.theme);
   const _hasHydrated = usePassageStore(s => s._hasHydrated);
 
   const [cursor, setCursor] = useState<ScreenPoint | null>(null);
@@ -237,6 +280,7 @@ export default function GestureControl() {
   const [dictationTarget, setDictationTarget] = useState<DictationTarget | null>(null);
   const [dictationMsg, setDictationMsg] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
+  const [micRect, setMicRect] = useState<MicRect | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [controller] = useState(createGestureController);
@@ -258,6 +302,58 @@ export default function GestureControl() {
     if (!enabled) controller.reset();
   }, [controller, enabled]);
 
+  const startDictation = useCallback((target: DictationTarget) => {
+    const Recognition = getSpeechRecognition();
+    if (!Recognition) {
+      setDictationMsg('Speech input is not supported here');
+      return;
+    }
+
+    recognitionRef.current?.stop();
+    const recognition = new Recognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    target.focus();
+    dictationSessionRef.current = {
+      target,
+      start:
+        target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
+          ? (target.selectionStart ?? target.value.length)
+          : (target.textContent?.length ?? 0),
+      text: '',
+    };
+    recognition.onresult = event => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i += 1) {
+        transcript += event.results[i][0].transcript;
+      }
+      const session = dictationSessionRef.current;
+      if (session) replaceDictationText(session, transcript);
+    };
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+      dictationSessionRef.current = null;
+      setDictationMsg('Mic idle');
+    };
+    recognition.onerror = () => {
+      setListening(false);
+      setDictationMsg('Could not hear speech');
+      recognitionRef.current = null;
+      dictationSessionRef.current = null;
+    };
+
+    recognitionRef.current = recognition;
+    setListening(true);
+    setDictationMsg('Listening automatically');
+    try {
+      recognition.start();
+    } catch {
+      setListening(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -276,28 +372,42 @@ export default function GestureControl() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('touchstart', onTouchStart);
     };
-  }, [enabled]);
+  }, [enabled, startDictation]);
 
   useEffect(() => {
     if (!enabled) return;
 
     const onFocusIn = (event: FocusEvent) => {
-      setDictationTarget(isTextTarget(event.target) ? event.target : null);
+      const nextTarget = isTextTarget(event.target) ? event.target : null;
+      setDictationTarget(nextTarget);
       setDictationMsg(null);
+      setMicRect(nextTarget ? micRectForTarget(nextTarget) : null);
+      if (nextTarget) window.setTimeout(() => startDictation(nextTarget), 0);
     };
     const onFocusOut = () => {
       window.setTimeout(() => {
-        if (!isTextTarget(document.activeElement)) setDictationTarget(null);
+        if (!isTextTarget(document.activeElement)) {
+          recognitionRef.current?.stop();
+          setDictationTarget(null);
+          setMicRect(null);
+        }
       }, 0);
+    };
+    const onScrollOrResize = () => {
+      if (isTextTarget(document.activeElement)) setMicRect(micRectForTarget(document.activeElement));
     };
 
     document.addEventListener('focusin', onFocusIn);
     document.addEventListener('focusout', onFocusOut);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
     return () => {
       document.removeEventListener('focusin', onFocusIn);
       document.removeEventListener('focusout', onFocusOut);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
     };
-  }, [enabled]);
+  }, [enabled, startDictation]);
 
   useEffect(() => {
     if (!enabled) {
@@ -306,61 +416,10 @@ export default function GestureControl() {
       window.setTimeout(() => {
         setListening(false);
         setDictationMsg(null);
+        setMicRect(null);
       }, 0);
     }
   }, [enabled]);
-
-  function startDictation() {
-    if (!dictationTarget) {
-      setDictationMsg('Focus a text field first');
-      return;
-    }
-
-    const Recognition = getSpeechRecognition();
-    if (!Recognition) {
-      setDictationMsg('Speech input is not supported here');
-      return;
-    }
-
-    recognitionRef.current?.stop();
-    const recognition = new Recognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-    dictationTarget.focus();
-    dictationSessionRef.current = {
-      target: dictationTarget,
-      start:
-        dictationTarget instanceof HTMLInputElement || dictationTarget instanceof HTMLTextAreaElement
-          ? (dictationTarget.selectionStart ?? dictationTarget.value.length)
-          : (dictationTarget.textContent?.length ?? 0),
-      text: '',
-    };
-    recognition.onresult = event => {
-      let transcript = '';
-      for (let i = 0; i < event.results.length; i += 1) {
-        transcript += event.results[i][0].transcript;
-      }
-      const session = dictationSessionRef.current;
-      if (session) replaceDictationText(session, transcript);
-    };
-    recognition.onend = () => {
-      setListening(false);
-      recognitionRef.current = null;
-      dictationSessionRef.current = null;
-    };
-    recognition.onerror = () => {
-      setListening(false);
-      setDictationMsg('Could not hear speech');
-      recognitionRef.current = null;
-      dictationSessionRef.current = null;
-    };
-
-    recognitionRef.current = recognition;
-    setListening(true);
-    setDictationMsg('Listening...');
-    recognition.start();
-  }
 
   useHandTracker({
     enabled: _hasHydrated && enabled,
@@ -398,7 +457,8 @@ export default function GestureControl() {
               hoveredTextTarget.setSelectionRange(end, end);
             }
             setDictationTarget(hoveredTextTarget);
-            setDictationMsg('Text field focused');
+            setMicRect(micRectForTarget(hoveredTextTarget));
+            setDictationMsg('Text field focused - listening');
             hoverFocusRef.current = { ...hover, focused: true };
           }
         } else if (hover.target) {
@@ -433,7 +493,7 @@ export default function GestureControl() {
   if (!_hasHydrated) return null;
   if (!enabled) return null;
 
-  const cursorStyle = cursorStyleForPose(poseLabel);
+  const cursorStyle = cursorStyleForPose(poseLabel, theme);
   const liveStatus = statusMsg ?? actionMsg;
   const scalePct = Math.round(gestureScale * 100);
 
@@ -538,6 +598,7 @@ export default function GestureControl() {
               className="absolute inset-0 rounded-full"
               style={{
                 border: '2px solid rgba(255,255,255,0.95)',
+                borderColor: cursorStyle.ring,
                 opacity: 0.65 + pinchProgress * 0.35,
               }}
             />
@@ -570,21 +631,27 @@ export default function GestureControl() {
             {item}
           </div>
         ))}
-        <div className="mt-2 border-t border-ghost pt-2">
-          <button
-            type="button"
-            onClick={startDictation}
-            className={`w-full cursor-pointer border px-2 py-1.5 uppercase tracking-[0.1em] ${
-              listening ? 'border-fg bg-fg text-bg' : 'border-ghost bg-transparent text-fg'
-            }`}
-          >
-            {listening ? 'Listening' : 'Dictate'}
-          </button>
-          <div className="mt-1 leading-snug text-faint">
-            {dictationMsg ?? (dictationTarget ? 'Text field ready' : 'Focus text to dictate')}
-          </div>
+        <div className="mt-2 border-t border-ghost pt-2 leading-snug text-faint">
+          {dictationMsg ?? (dictationTarget ? 'Mic attached to field' : 'Hover text 300ms for mic')}
         </div>
       </div>
+
+      {micRect && (
+        <div
+          aria-hidden
+          className={`pointer-events-none fixed z-[520] flex h-7 w-7 items-center justify-center rounded-full border font-mono transition-all ${
+            listening ? 'border-success text-success' : 'border-ghost text-faint'
+          }`}
+          style={{
+            top: micRect.top,
+            left: micRect.left,
+            background: 'var(--c-bg)',
+            boxShadow: listening ? '0 0 18px rgba(106,156,106,0.35)' : 'none',
+          }}
+        >
+          <MicIcon size={13} />
+        </div>
+      )}
 
       <div
         className="fixed z-[400] font-mono"

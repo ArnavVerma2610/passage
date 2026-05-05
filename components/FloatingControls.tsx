@@ -91,6 +91,27 @@ function HandIcon({ size = 14 }: { size?: number }) {
 const BTN =
   'flex h-[38px] w-[38px] cursor-pointer items-center justify-center border bg-bg font-mono text-[0.6875rem] text-fg transition-colors';
 
+function playThemeWipe(nextTheme: 'dark' | 'light') {
+  if (typeof document === 'undefined') return;
+
+  const wipe = document.createElement('div');
+  const base = nextTheme === 'light' ? '#fff9ef' : '#000';
+  const halo = nextTheme === 'light' ? 'rgba(243,236,216,0.92)' : 'rgba(10,10,10,0.92)';
+  wipe.className = 'passage-theme-wipe';
+  wipe.style.background = `radial-gradient(circle at bottom left, ${base} 0%, ${halo} 52%, ${base} 100%)`;
+  document.body.appendChild(wipe);
+
+  const animation = wipe.animate(
+    [
+      { clipPath: 'circle(0% at 0% 100%)' },
+      { clipPath: 'circle(155% at 0% 100%)' },
+    ],
+    { duration: 620, easing: 'cubic-bezier(0.2, 0.75, 0.18, 1)', fill: 'forwards' },
+  );
+
+  animation.onfinish = () => wipe.remove();
+}
+
 export default function FloatingControls() {
   const _hasHydrated = usePassageStore(s => s._hasHydrated);
   const theme = usePassageStore(s => s.theme);
@@ -176,7 +197,10 @@ export default function FloatingControls() {
         <button
           type="button"
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          onClick={toggleTheme}
+          onClick={() => {
+            playThemeWipe(theme === 'dark' ? 'light' : 'dark');
+            toggleTheme();
+          }}
           className={`${BTN} border-ghost`}
           title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
         >

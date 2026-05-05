@@ -72,6 +72,14 @@
     @apply bg-bg text-fg;
   }
 
+  .passage-theme-wipe {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    will-change: clip-path;
+  }
+
   * {
     box-sizing: border-box;
     margin: 0;

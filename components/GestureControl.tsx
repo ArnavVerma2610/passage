@@ -27,11 +27,16 @@ interface SpeechRecognitionLike extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  onstart: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   start: () => void;
   stop: () => void;
+}
+
+interface SpeechRecognitionErrorEventLike extends Event {
+  error?: string;
 }
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
@@ -237,6 +242,21 @@ function micRectForTarget(target: DictationTarget): MicRect {
   };
 }
 
+function clearDictationTarget(target: DictationTarget) {
+  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+    if (!target.value) return;
+    target.value = '';
+    target.setSelectionRange(0, 0);
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
+  }
+
+  if (!target.textContent) return;
+  target.textContent = '';
+  target.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }));
+}
+
 function replaceDictationText(session: DictationSession, text: string) {
   const next = text.trimStart();
 
@@ -303,6 +323,8 @@ export default function GestureControl() {
   }, [controller, enabled]);
 
   const startDictation = useCallback((target: DictationTarget) => {
+    if (dictationSessionRef.current?.target === target && recognitionRef.current) return;
+
     const Recognition = getSpeechRecognition();
     if (!Recognition) {
       setDictationMsg('Speech input is not supported here');
@@ -315,15 +337,19 @@ export default function GestureControl() {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
     target.focus();
+    clearDictationTarget(target);
     dictationSessionRef.current = {
       target,
-      start:
-        target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
-          ? (target.selectionStart ?? target.value.length)
-          : (target.textContent?.length ?? 0),
+      start: 0,
       text: '',
     };
+    recognition.onstart = () => {
+      if (recognitionRef.current !== recognition) return;
+      setListening(true);
+      setDictationMsg('Listening automatically');
+    };
     recognition.onresult = event => {
+      if (recognitionRef.current !== recognition) return;
       let transcript = '';
       for (let i = 0; i < event.results.length; i += 1) {
         transcript += event.results[i][0].transcript;
@@ -332,25 +358,36 @@ export default function GestureControl() {
       if (session) replaceDictationText(session, transcript);
     };
     recognition.onend = () => {
+      if (recognitionRef.current !== recognition) return;
       setListening(false);
       recognitionRef.current = null;
       dictationSessionRef.current = null;
       setDictationMsg('Mic idle');
     };
-    recognition.onerror = () => {
+    recognition.onerror = event => {
+      if (recognitionRef.current !== recognition) return;
       setListening(false);
-      setDictationMsg('Could not hear speech');
+      setDictationMsg(
+        event.error === 'not-allowed'
+          ? 'Allow microphone access, then focus the field again'
+          : event.error === 'audio-capture'
+            ? 'No microphone was found'
+            : 'Could not hear speech',
+      );
       recognitionRef.current = null;
       dictationSessionRef.current = null;
     };
 
     recognitionRef.current = recognition;
-    setListening(true);
-    setDictationMsg('Listening automatically');
+    setListening(false);
+    setDictationMsg('Starting microphone');
     try {
       recognition.start();
     } catch {
       setListening(false);
+      recognitionRef.current = null;
+      dictationSessionRef.current = null;
+      setDictationMsg('Click gesture controls once, then focus the field again');
     }
   }, []);
 

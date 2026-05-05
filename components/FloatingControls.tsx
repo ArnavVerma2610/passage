@@ -1,7 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { usePassageStore } from '@/lib/store';
+
+type SpeechRecognitionConstructor = new () => {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
 
 const FONT_SIZES = [
   { value: 14, label: 'Compact' },
@@ -91,25 +102,40 @@ function HandIcon({ size = 14 }: { size?: number }) {
 const BTN =
   'flex h-[38px] w-[38px] cursor-pointer items-center justify-center border bg-bg font-mono text-[0.6875rem] text-fg transition-colors';
 
-function playThemeWipe(nextTheme: 'dark' | 'light') {
-  if (typeof document === 'undefined') return;
+function getSpeechRecognition() {
+  if (typeof window === 'undefined') return null;
+  const win = window as Window & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+  return win.SpeechRecognition ?? win.webkitSpeechRecognition ?? null;
+}
 
-  const wipe = document.createElement('div');
-  const base = nextTheme === 'light' ? '#fff9ef' : '#000';
-  const halo = nextTheme === 'light' ? 'rgba(243,236,216,0.92)' : 'rgba(10,10,10,0.92)';
-  wipe.className = 'passage-theme-wipe';
-  wipe.style.background = `radial-gradient(circle at bottom left, ${base} 0%, ${halo} 52%, ${base} 100%)`;
-  document.body.appendChild(wipe);
+function primeSpeechRecognition() {
+  const Recognition = getSpeechRecognition();
+  if (!Recognition) return;
 
-  const animation = wipe.animate(
-    [
-      { clipPath: 'circle(0% at 0% 100%)' },
-      { clipPath: 'circle(155% at 0% 100%)' },
-    ],
-    { duration: 620, easing: 'cubic-bezier(0.2, 0.75, 0.18, 1)', fill: 'forwards' },
-  );
+  try {
+    const recognition = new Recognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onend = null;
+    recognition.onerror = null;
+    recognition.start();
+    window.setTimeout(() => recognition.stop(), 80);
+  } catch {
+    // Browsers that require a stronger user gesture will retry on field focus.
+  }
+}
 
-  animation.onfinish = () => wipe.remove();
+function runThemeTransition(updateTheme: () => void) {
+  if (!document.startViewTransition) {
+    updateTheme();
+    return;
+  }
+
+  document.startViewTransition(() => flushSync(updateTheme));
 }
 
 export default function FloatingControls() {
@@ -179,7 +205,10 @@ export default function FloatingControls() {
         <button
           type="button"
           aria-label={gestureEnabled ? 'Disable gesture control' : 'Enable gesture control'}
-          onClick={() => setGestureEnabled(!gestureEnabled)}
+          onClick={() => {
+            if (!gestureEnabled) primeSpeechRecognition();
+            setGestureEnabled(!gestureEnabled);
+          }}
           className={`${BTN} ${gestureEnabled ? 'border-fg bg-fg !text-bg' : 'border-ghost'}`}
           title={gestureEnabled ? 'Stop gesture control' : 'Start gesture control'}
         >
@@ -197,10 +226,7 @@ export default function FloatingControls() {
         <button
           type="button"
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          onClick={() => {
-            playThemeWipe(theme === 'dark' ? 'light' : 'dark');
-            toggleTheme();
-          }}
+          onClick={() => runThemeTransition(toggleTheme)}
           className={`${BTN} border-ghost`}
           title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
         >

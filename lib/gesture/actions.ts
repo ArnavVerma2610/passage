@@ -16,6 +16,27 @@ function targetAt(point: ScreenPoint) {
   return document.elementFromPoint(point.x, point.y);
 }
 
+function rangeAt(point: ScreenPoint) {
+  const target = targetAt(point);
+  if (!(target instanceof Element)) return null;
+  return target.closest<HTMLInputElement>('input[type="range"]');
+}
+
+function setRangeValueAtPoint(input: HTMLInputElement, point: ScreenPoint) {
+  const rect = input.getBoundingClientRect();
+  const min = Number(input.min || 0);
+  const max = Number(input.max || 100);
+  const step = Number(input.step || 1);
+  const raw = min + ((point.x - rect.left) / Math.max(1, rect.width)) * (max - min);
+  const stepped = step > 0 ? Math.round((raw - min) / step) * step + min : raw;
+  const next = Math.min(max, Math.max(min, stepped));
+
+  const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+  valueSetter?.call(input, String(next));
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 function mouseInit(point: ScreenPoint, button: 0 | 2 = 0, buttons = button === 2 ? 2 : 1): MouseEventInit {
   return {
     bubbles: true,
@@ -45,6 +66,12 @@ export function dispatchGestureHover(point: ScreenPoint) {
 }
 
 export function dispatchGestureClick(point: ScreenPoint) {
+  const range = rangeAt(point);
+  if (range) {
+    setRangeValueAtPoint(range, point);
+    return;
+  }
+
   const target = targetAt(point);
   if (!target) return;
 

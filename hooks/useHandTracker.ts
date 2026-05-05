@@ -142,7 +142,12 @@ export function useHandTracker({
 
         callbacksRef.current.onStatus('Requesting camera...');
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          video: {
+            facingMode: 'user',
+            width: { ideal: 960 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30, max: 30 },
+          },
           audio: false,
         });
 

@@ -13,6 +13,30 @@ import { createGestureController } from '@/lib/gesture/controller';
 import type { HandPose, ScreenPoint } from '@/lib/gesture/classifier';
 import { usePassageStore } from '@/lib/store';
 
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  0: { transcript: string };
+}
+
+interface SpeechRecognitionEventLike extends Event {
+  results: ArrayLike<SpeechRecognitionResultLike>;
+}
+
+interface SpeechRecognitionLike extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type DictationTarget = HTMLInputElement | HTMLTextAreaElement | HTMLElement;
+
 interface IconProps {
   size?: number;
 }
@@ -98,6 +122,15 @@ const GESTURE_LIST = [
   { name: 'Open-palm swipe', desc: 'Open palm, swipe left or right - skip or save the deck card.' },
   { name: 'Two-palm zoom', desc: 'Show both palms, then move them apart or together - app zoom.' },
   { name: 'Fist', desc: 'Close your hand - pause cursor and actions.' },
+  { name: 'Dictate', desc: 'Focus any text field, then use Dictate to speak text into it.' },
+];
+
+const ACTIVE_GESTURE_LIST = [
+  'Point: move cursor',
+  'Pinch hold: click / set slider',
+  'Two fingers: scroll',
+  'Open palm: skip/save',
+  'Focus text: dictate',
 ];
 
 function labelForPose(pose: HandPose) {
@@ -128,6 +161,55 @@ function cursorStyleForPose(pose: HandPose) {
   };
 }
 
+function getSpeechRecognition() {
+  if (typeof window === 'undefined') return null;
+  const win = window as Window & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+  return win.SpeechRecognition ?? win.webkitSpeechRecognition ?? null;
+}
+
+function isTextTarget(target: EventTarget | null): target is DictationTarget {
+  if (target instanceof HTMLTextAreaElement) return true;
+  if (target instanceof HTMLInputElement) {
+    return !['button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit'].includes(
+      target.type,
+    );
+  }
+  return target instanceof HTMLElement && target.isContentEditable;
+}
+
+function insertDictationText(target: DictationTarget, text: string) {
+  const addition = text.trim();
+  if (!addition) return;
+
+  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+    const start = target.selectionStart ?? target.value.length;
+    const end = target.selectionEnd ?? target.value.length;
+    const prefix = start > 0 && !/\s$/.test(target.value.slice(0, start)) ? ' ' : '';
+    const suffix = end < target.value.length && !/^\s/.test(target.value.slice(end)) ? ' ' : '';
+    target.setRangeText(`${prefix}${addition}${suffix}`, start, end, 'end');
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
+  }
+
+  target.focus();
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) {
+    target.append(addition);
+    return;
+  }
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  range.insertNode(document.createTextNode(addition));
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  target.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: addition }));
+}
+
 export default function GestureControl() {
   const enabled = usePassageStore(s => s.gestureEnabled);
   const setEnabled = usePassageStore(s => s.setGestureEnabled);
@@ -147,11 +229,15 @@ export default function GestureControl() {
   const [showCursor, setShowCursor] = useState(true);
   const [handsSeen, setHandsSeen] = useState(0);
   const [pinchProgress, setPinchProgress] = useState(0);
+  const [dictationTarget, setDictationTarget] = useState<DictationTarget | null>(null);
+  const [dictationMsg, setDictationMsg] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [controller] = useState(createGestureController);
   const scaleRef = useRef(gestureScale);
   const lastGestureMoveAtRef = useRef(0);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
     scaleRef.current = gestureScale;
@@ -180,6 +266,79 @@ export default function GestureControl() {
       window.removeEventListener('touchstart', onTouchStart);
     };
   }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const onFocusIn = (event: FocusEvent) => {
+      setDictationTarget(isTextTarget(event.target) ? event.target : null);
+      setDictationMsg(null);
+    };
+    const onFocusOut = () => {
+      window.setTimeout(() => {
+        if (!isTextTarget(document.activeElement)) setDictationTarget(null);
+      }, 0);
+    };
+
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
+    return () => {
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', onFocusOut);
+    };
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) {
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+      window.setTimeout(() => {
+        setListening(false);
+        setDictationMsg(null);
+      }, 0);
+    }
+  }, [enabled]);
+
+  function startDictation() {
+    if (!dictationTarget) {
+      setDictationMsg('Focus a text field first');
+      return;
+    }
+
+    const Recognition = getSpeechRecognition();
+    if (!Recognition) {
+      setDictationMsg('Speech input is not supported here');
+      return;
+    }
+
+    recognitionRef.current?.stop();
+    const recognition = new Recognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.onresult = event => {
+      let finalText = '';
+      for (let i = 0; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        if (result.isFinal) finalText += result[0].transcript;
+      }
+      if (finalText) insertDictationText(dictationTarget, finalText);
+    };
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onerror = () => {
+      setListening(false);
+      setDictationMsg('Could not hear speech');
+      recognitionRef.current = null;
+    };
+
+    recognitionRef.current = recognition;
+    setListening(true);
+    setDictationMsg('Listening...');
+    recognition.start();
+  }
 
   useHandTracker({
     enabled: _hasHydrated && enabled,
@@ -354,6 +513,37 @@ export default function GestureControl() {
           />
         </div>
       )}
+
+      <div
+        className="fixed z-[390] w-[210px] border border-ghost bg-bg/95 p-2.5 font-mono text-[0.625rem] text-dim shadow-lg"
+        style={{
+          right: 'calc(16px + var(--safe-right))',
+          bottom: 'calc(72px + var(--safe-bottom))',
+        }}
+      >
+        <div className="mb-2 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
+          Gesture map
+        </div>
+        {ACTIVE_GESTURE_LIST.map(item => (
+          <div key={item} className="mb-1 last:mb-0">
+            {item}
+          </div>
+        ))}
+        <div className="mt-2 border-t border-ghost pt-2">
+          <button
+            type="button"
+            onClick={startDictation}
+            className={`w-full cursor-pointer border px-2 py-1.5 uppercase tracking-[0.1em] ${
+              listening ? 'border-fg bg-fg text-bg' : 'border-ghost bg-transparent text-fg'
+            }`}
+          >
+            {listening ? 'Listening' : 'Dictate'}
+          </button>
+          <div className="mt-1 leading-snug text-faint">
+            {dictationMsg ?? (dictationTarget ? 'Text field ready' : 'Focus text to dictate')}
+          </div>
+        </div>
+      </div>
 
       <div
         className="fixed z-[400] font-mono"

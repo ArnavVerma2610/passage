@@ -82,7 +82,7 @@ function fingerExtended(landmarks: NormalizedLandmark[], tipIdx: number, pipIdx:
   const wrist = landmarks[WRIST];
   const tip = landmarks[tipIdx];
   const pip = landmarks[pipIdx];
-  return distance2d(tip, wrist) > distance2d(pip, wrist) * 1.08;
+  return distance2d(tip, wrist) > distance2d(pip, wrist) * 1.02;
 }
 
 export function classifyHand(landmarks: NormalizedLandmark[]): HandSample {

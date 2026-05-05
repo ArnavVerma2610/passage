@@ -20,6 +20,7 @@ interface SpeechRecognitionResultLike {
 
 interface SpeechRecognitionEventLike extends Event {
   results: ArrayLike<SpeechRecognitionResultLike>;
+  resultIndex?: number;
 }
 
 interface SpeechRecognitionLike extends EventTarget {
@@ -36,6 +37,12 @@ interface SpeechRecognitionLike extends EventTarget {
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
 type DictationTarget = HTMLInputElement | HTMLTextAreaElement | HTMLElement;
+
+interface DictationSession {
+  target: DictationTarget;
+  start: number;
+  text: string;
+}
 
 interface IconProps {
   size?: number;
@@ -128,6 +135,7 @@ const GESTURE_LIST = [
 const ACTIVE_GESTURE_LIST = [
   'Point: move cursor',
   'Pinch hold: click / set slider',
+  'Hover 300ms: focus text',
   'Two fingers: scroll',
   'Open palm: skip/save',
   'Focus text: dictate',
@@ -180,34 +188,31 @@ function isTextTarget(target: EventTarget | null): target is DictationTarget {
   return target instanceof HTMLElement && target.isContentEditable;
 }
 
-function insertDictationText(target: DictationTarget, text: string) {
-  const addition = text.trim();
-  if (!addition) return;
+function textTargetAt(point: ScreenPoint) {
+  const target = document.elementFromPoint(point.x, point.y);
+  if (!(target instanceof Element)) return null;
+  const textTarget = target.closest('input, textarea, [contenteditable="true"]');
+  return isTextTarget(textTarget) ? textTarget : null;
+}
 
-  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
-    const start = target.selectionStart ?? target.value.length;
-    const end = target.selectionEnd ?? target.value.length;
-    const prefix = start > 0 && !/\s$/.test(target.value.slice(0, start)) ? ' ' : '';
-    const suffix = end < target.value.length && !/^\s/.test(target.value.slice(end)) ? ' ' : '';
-    target.setRangeText(`${prefix}${addition}${suffix}`, start, end, 'end');
-    target.dispatchEvent(new Event('input', { bubbles: true }));
-    target.dispatchEvent(new Event('change', { bubbles: true }));
+function replaceDictationText(session: DictationSession, text: string) {
+  const next = text.trimStart();
+
+  if (session.target instanceof HTMLInputElement || session.target instanceof HTMLTextAreaElement) {
+    const value = session.target.value;
+    const prefix = session.start > 0 && !/\s$/.test(value.slice(0, session.start)) && next ? ' ' : '';
+    const replacement = `${prefix}${next}`;
+    const end = session.start + session.text.length;
+    session.target.setRangeText(replacement, session.start, end, 'end');
+    session.text = replacement;
+    session.target.dispatchEvent(new Event('input', { bubbles: true }));
+    session.target.dispatchEvent(new Event('change', { bubbles: true }));
     return;
   }
 
-  target.focus();
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) {
-    target.append(addition);
-    return;
-  }
-  const range = selection.getRangeAt(0);
-  range.deleteContents();
-  range.insertNode(document.createTextNode(addition));
-  range.collapse(false);
-  selection.removeAllRanges();
-  selection.addRange(range);
-  target.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: addition }));
+  session.target.textContent = `${session.target.textContent?.slice(0, session.start) ?? ''}${next}`;
+  session.text = next;
+  session.target.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: next }));
 }
 
 export default function GestureControl() {
@@ -238,6 +243,12 @@ export default function GestureControl() {
   const scaleRef = useRef(gestureScale);
   const lastGestureMoveAtRef = useRef(0);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const dictationSessionRef = useRef<DictationSession | null>(null);
+  const hoverFocusRef = useRef<{ target: DictationTarget | null; startedAt: number; focused: boolean }>({
+    target: null,
+    startedAt: 0,
+    focused: false,
+  });
 
   useEffect(() => {
     scaleRef.current = gestureScale;
@@ -313,25 +324,36 @@ export default function GestureControl() {
 
     recognitionRef.current?.stop();
     const recognition = new Recognition();
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
+    dictationTarget.focus();
+    dictationSessionRef.current = {
+      target: dictationTarget,
+      start:
+        dictationTarget instanceof HTMLInputElement || dictationTarget instanceof HTMLTextAreaElement
+          ? (dictationTarget.selectionStart ?? dictationTarget.value.length)
+          : (dictationTarget.textContent?.length ?? 0),
+      text: '',
+    };
     recognition.onresult = event => {
-      let finalText = '';
+      let transcript = '';
       for (let i = 0; i < event.results.length; i += 1) {
-        const result = event.results[i];
-        if (result.isFinal) finalText += result[0].transcript;
+        transcript += event.results[i][0].transcript;
       }
-      if (finalText) insertDictationText(dictationTarget, finalText);
+      const session = dictationSessionRef.current;
+      if (session) replaceDictationText(session, transcript);
     };
     recognition.onend = () => {
       setListening(false);
       recognitionRef.current = null;
+      dictationSessionRef.current = null;
     };
     recognition.onerror = () => {
       setListening(false);
       setDictationMsg('Could not hear speech');
       recognitionRef.current = null;
+      dictationSessionRef.current = null;
     };
 
     recognitionRef.current = recognition;
@@ -362,6 +384,25 @@ export default function GestureControl() {
         if (output.pose === 'point' || output.pose === 'pinch' || output.pose === 'scroll' || output.pose === 'relaxed') {
           lastGestureMoveAtRef.current = Date.now();
           dispatchGestureHover(output.cursor);
+        }
+
+        const hoveredTextTarget = textTargetAt(output.cursor);
+        const hover = hoverFocusRef.current;
+        if (hoveredTextTarget) {
+          if (hover.target !== hoveredTextTarget) {
+            hoverFocusRef.current = { target: hoveredTextTarget, startedAt: frame.now, focused: false };
+          } else if (!hover.focused && frame.now - hover.startedAt >= 300) {
+            hoveredTextTarget.focus();
+            if (hoveredTextTarget instanceof HTMLInputElement || hoveredTextTarget instanceof HTMLTextAreaElement) {
+              const end = hoveredTextTarget.value.length;
+              hoveredTextTarget.setSelectionRange(end, end);
+            }
+            setDictationTarget(hoveredTextTarget);
+            setDictationMsg('Text field focused');
+            hoverFocusRef.current = { ...hover, focused: true };
+          }
+        } else if (hover.target) {
+          hoverFocusRef.current = { target: null, startedAt: 0, focused: false };
         }
       }
 

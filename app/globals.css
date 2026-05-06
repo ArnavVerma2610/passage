@@ -4,14 +4,14 @@
 
 @layer base {
   :root {
-    --c-bg: #0051ff;
+    --c-bg: #114ed5;
     --c-fg: #fff;
     --c-dim: #d6e2ff;
     --c-faint: #a9c0ff;
     --c-ghost: #3f78ff;
     --c-sub: #f3f7ff;
-    --c-surface: #0b5bff;
-    --c-surface-2: #0047df;
+    --c-surface: #1b57db;
+    --c-surface-2: #0c44bd;
     --c-danger: var(--c-fg);
     --c-danger-border: var(--c-ghost);
     --c-warn: var(--c-dim);
@@ -19,12 +19,12 @@
     --c-success: var(--c-fg);
     --c-success-border: var(--c-ghost);
     --c-active: #1d65ff;
-    --c-scrim: rgba(0, 81, 255, 0.95);
-    --c-scrim-soft: rgba(0, 81, 255, 0.85);
+    --c-scrim: rgba(17, 78, 213, 0.95);
+    --c-scrim-soft: rgba(17, 78, 213, 0.85);
     --c-track: #3f78ff;
     --c-thumb: #fff;
     --c-selection-bg: #fff;
-    --c-selection-fg: #0051ff;
+    --c-selection-fg: #114ed5;
     --c-dot-on: #fff;
     --c-dot-off: #3f78ff;
     --passage-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -123,6 +123,21 @@
 
   body {
     @apply bg-bg text-fg;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    mix-blend-mode: screen;
+  }
+
+  [data-color='blue']:not([data-theme='light']) body::before {
+    opacity: 0.2;
   }
 
   ::view-transition-group(root) {

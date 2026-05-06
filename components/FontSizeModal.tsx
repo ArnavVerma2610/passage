@@ -10,7 +10,7 @@ const SIZES = [
 ] as const;
 
 const COLOR_MODES = [
-  { value: 'blue', label: 'Blue', desc: '#0051FF base' },
+  { value: 'blue', label: 'Blue', desc: 'Blue base' },
   { value: 'mono', label: 'Mono', desc: 'Black base' },
 ] as const;
 
@@ -54,7 +54,7 @@ export default function FontSizeModal() {
                 <span className="flex gap-1.5" aria-hidden>
                   <span
                     className="inline-block h-4 w-4 border border-ghost"
-                    style={{ background: mode.value === 'blue' ? '#0051FF' : '#000' }}
+                    style={{ background: mode.value === 'blue' ? '#114ED5' : '#000' }}
                   />
                   <span className="inline-block h-4 w-4 border border-ghost bg-bg" />
                   <span className="inline-block h-4 w-4 border border-ghost bg-fg" />

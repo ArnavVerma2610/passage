@@ -17,7 +17,7 @@ const FONT_SIZES = [
 ] as const;
 
 const COLOR_MODES = [
-  { value: 'blue', label: 'Blue', desc: '#0051FF' },
+  { value: 'blue', label: 'Blue', desc: '#114ED5 dark' },
   { value: 'mono', label: 'Mono', desc: 'Black' },
 ] as const;
 

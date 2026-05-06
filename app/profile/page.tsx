@@ -16,6 +16,11 @@ const FONT_SIZES = [
   { value: 20, label: 'Extra large' },
 ] as const;
 
+const COLOR_MODES = [
+  { value: 'blue', label: 'Blue', desc: '#0051FF' },
+  { value: 'mono', label: 'Mono', desc: 'Black' },
+] as const;
+
 export default function ProfilePage() {
   const router = useRouter();
 
@@ -26,7 +31,9 @@ export default function ProfilePage() {
   const amp = usePassageStore(s => s.amp);
   const profile = usePassageStore(s => s.profile);
   const fontSize = usePassageStore(s => s.fontSize);
+  const colorMode = usePassageStore(s => s.colorMode);
   const setFontSize = usePassageStore(s => s.setFontSize);
+  const setColorMode = usePassageStore(s => s.setColorMode);
   const resetOnboarding = usePassageStore(s => s.resetOnboarding);
   const signOut = usePassageStore(s => s.signOut);
 
@@ -174,6 +181,34 @@ export default function ProfilePage() {
             </div>
           </div>
         ))}
+
+        <div className="mt-8">
+          <div className="mb-3.5 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">
+            Colour mode
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {COLOR_MODES.map(mode => {
+              const active = colorMode === mode.value;
+              return (
+                <button
+                  key={mode.value}
+                  type="button"
+                  onClick={() => setColorMode(mode.value)}
+                  className={`flex cursor-pointer flex-col gap-1.5 border px-3 py-3.5 text-left transition-all ${
+                    active ? 'border-fg bg-active' : 'border-ghost bg-transparent'
+                  }`}
+                >
+                  <span className="text-[0.6875rem] uppercase tracking-[0.08em] text-sub">
+                    {mode.label}
+                  </span>
+                  <span className="text-[0.5625rem] uppercase tracking-[0.06em] text-faint">
+                    {mode.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="mt-8">
           <div className="mb-3.5 text-[0.5625rem] uppercase tracking-[0.14em] text-faint">

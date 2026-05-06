@@ -173,8 +173,7 @@ export default function FloatingControls() {
         <div
           className="grid min-w-[200px] grid-cols-2 gap-1 border border-ghost bg-bg p-1.5"
           style={{
-            boxShadow:
-              theme === 'light' ? '0 6px 24px rgba(0,0,0,0.08)' : '0 6px 24px rgba(0,0,0,0.6)',
+            boxShadow: '0 6px 24px color-mix(in srgb, var(--c-fg) 18%, transparent)',
           }}
         >
           {FONT_SIZES.map(s => {

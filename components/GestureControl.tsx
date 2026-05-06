@@ -157,9 +157,9 @@ function labelForPose(pose: HandPose) {
   return pose.toUpperCase();
 }
 
-function cursorStyleForPose(pose: HandPose, theme: 'dark' | 'light') {
-  const ink = theme === 'light' ? '#000' : '#fff';
-  const glow = theme === 'light' ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.34)';
+function cursorStyleForPose(pose: HandPose) {
+  const ink = 'var(--c-fg)';
+  const glow = 'color-mix(in srgb, var(--c-fg) 28%, transparent)';
 
   if (pose === 'pinch') {
     return {
@@ -172,19 +172,16 @@ function cursorStyleForPose(pose: HandPose, theme: 'dark' | 'light') {
   if (pose === 'zoom') {
     return {
       size: 34,
-      background: 'radial-gradient(circle at 35% 35%, rgba(204,153,0,0.95), rgba(204,153,0,0.18))',
+      background: 'radial-gradient(circle at 35% 35%, var(--c-fg), color-mix(in srgb, var(--c-fg) 18%, transparent))',
       ring: ink,
-      shadow: '0 0 28px 8px rgba(204,153,0,0.25)',
+      shadow: `0 0 28px 8px ${glow}`,
     };
   }
   return {
     size: 28,
-    background:
-      theme === 'light'
-        ? 'radial-gradient(circle at 35% 35%, rgba(0,0,0,0.95), rgba(0,0,0,0.16))'
-        : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.95), rgba(255,255,255,0.15))',
+    background: 'radial-gradient(circle at 35% 35%, var(--c-fg), color-mix(in srgb, var(--c-fg) 16%, transparent))',
     ring: ink,
-    shadow: theme === 'light' ? '0 0 22px 5px rgba(0,0,0,0.18)' : '0 0 24px 6px rgba(106,156,106,0.24)',
+    shadow: `0 0 22px 5px ${glow}`,
   };
 }
 
@@ -286,7 +283,6 @@ export default function GestureControl() {
   const setLegendOpen = usePassageStore(s => s.setGestureLegendOpen);
   const gestureScale = usePassageStore(s => s.gestureScale);
   const setGestureScale = usePassageStore(s => s.setGestureScale);
-  const theme = usePassageStore(s => s.theme);
   const _hasHydrated = usePassageStore(s => s._hasHydrated);
 
   const [cursor, setCursor] = useState<ScreenPoint | null>(null);
@@ -530,7 +526,7 @@ export default function GestureControl() {
   if (!_hasHydrated) return null;
   if (!enabled) return null;
 
-  const cursorStyle = cursorStyleForPose(poseLabel, theme);
+  const cursorStyle = cursorStyleForPose(poseLabel);
   const liveStatus = statusMsg ?? actionMsg;
   const scalePct = Math.round(gestureScale * 100);
 
@@ -683,7 +679,7 @@ export default function GestureControl() {
             top: micRect.top,
             left: micRect.left,
             background: 'var(--c-bg)',
-            boxShadow: listening ? '0 0 18px rgba(106,156,106,0.35)' : 'none',
+            boxShadow: listening ? '0 0 18px color-mix(in srgb, var(--c-fg) 30%, transparent)' : 'none',
           }}
         >
           <MicIcon size={13} />

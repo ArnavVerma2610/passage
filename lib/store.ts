@@ -16,6 +16,8 @@ export interface SwipedEntry {
   dir: 'left' | 'right';
 }
 
+export type PassageColorMode = 'blue' | 'mono';
+
 interface PassageStore {
   // ── persisted ──────────────────────────────────────────────────────────────
   user: User | null;
@@ -26,6 +28,7 @@ interface PassageStore {
   profile: ProfileValues;
   fontSize: number;
   fontSizeSet: boolean;
+  colorMode: PassageColorMode;
   theme: 'dark' | 'light';
   customItineraries: Record<string, ItineraryDay[]>;
   itineraryStyle: Record<string, ItineraryStyle>;
@@ -54,6 +57,7 @@ interface PassageStore {
   setPassport: (code: string) => void;
   setProfile: (values: ProfileValues) => void;
   setFontSize: (size: number) => void;
+  setColorMode: (mode: PassageColorMode) => void;
   confirmFontSize: () => void;
   setTheme: (t: 'dark' | 'light') => void;
   toggleTheme: () => void;
@@ -115,6 +119,7 @@ export const usePassageStore = create<PassageStore>()(
       profile: DEFAULT_PROFILE,
       fontSize: 16,
       fontSizeSet: false,
+      colorMode: 'blue',
       theme: 'dark',
       customItineraries: {},
       itineraryStyle: {},
@@ -154,6 +159,7 @@ export const usePassageStore = create<PassageStore>()(
         })),
       setProfile: values => set({ profile: values }),
       setFontSize: size => set({ fontSize: size }),
+      setColorMode: mode => set({ colorMode: mode }),
       confirmFontSize: () => set({ fontSizeSet: true }),
       setTheme: t => set({ theme: t }),
       toggleTheme: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
@@ -262,6 +268,7 @@ export const usePassageStore = create<PassageStore>()(
         profile: state.profile,
         fontSize: state.fontSize,
         fontSizeSet: state.fontSizeSet,
+        colorMode: state.colorMode,
         theme: state.theme,
         customItineraries: state.customItineraries,
         itineraryStyle: state.itineraryStyle,

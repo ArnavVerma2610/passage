@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DestCard from '@/components/DestCard';
+import PageTipBanner from '@/components/PageTipBanner';
 import { DESTINATIONS } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
 
@@ -26,17 +27,16 @@ export default function TripsPage() {
 
   return (
     <div className="min-h-screen pb-20 text-sm">
-      <div className="sticky top-0 z-10 border-b border-ghost bg-bg px-6 pb-5 pt-6">
-        <div className="mb-1 text-[0.5625rem] uppercase tracking-[0.18em] text-faint">
-          Your trips
-        </div>
-        <div className="text-base text-fg">Saved destinations</div>
-        <div className="mt-1 text-[0.6875rem] text-faint">
-          {saved.length > 0
-            ? `${saved.length} saved · click any to view itinerary and book`
-            : 'Nothing saved yet'}
-        </div>
-      </div>
+      <PageTipBanner
+        storageKey="trips"
+        eyebrow="Your trips"
+        title="Saved destinations"
+        detail={
+          saved.length > 0
+            ? `${saved.length} saved - click any to view itinerary and book`
+            : 'Nothing saved yet'
+        }
+      />
 
       {saved.length > 0 ? (
         <div className="grid grid-cols-1 border-l border-t border-ghost sm:grid-cols-2 xl:grid-cols-3">

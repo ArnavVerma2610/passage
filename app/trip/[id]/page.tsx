@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import TopBar from '@/components/TopBar';
+import PageTipBanner from '@/components/PageTipBanner';
 import BookingModal from '@/components/BookingModal';
 import FoodMenuModal, { priceDollars } from '@/components/FoodMenuModal';
 import ItineraryEditor from '@/components/ItineraryEditor';
@@ -54,6 +55,13 @@ export default function TripPage({ params }: TripPageProps) {
   return (
     <div className="min-h-screen text-sm leading-[1.55]">
       <TopBar title={dest.name} right={dest.country} onBack={() => router.push('/discover')} />
+      <PageTipBanner
+        storageKey={`trip-${dest.id}`}
+        eyebrow="Trip brief"
+        title={`${dest.coords} - ${dest.region}`}
+        detail="Use the tabs to tune your itinerary, inspect food spots, arm safety tools, and book travel."
+        sticky={false}
+      />
 
       <div className="mx-auto max-w-[920px] pb-20">
         <div className="px-6 pt-7">

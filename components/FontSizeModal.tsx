@@ -19,7 +19,7 @@ export default function FontSizeModal() {
   if (!_hasHydrated || fontSizeSet) return null;
 
   return (
-    <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-bg/95 px-6 font-mono">
+    <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-bg px-6 font-mono">
       <div className="w-full max-w-[420px]">
         <div className="mb-2.5 text-[0.625rem] uppercase tracking-[0.2em] text-faint">
           Before we begin

@@ -1,14 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { JetBrains_Mono } from 'next/font/google';
+import { Geist_Mono } from 'next/font/google';
 import FontSizeEffect from '@/components/FontSizeEffect';
 import FloatingControls from '@/components/FloatingControls';
 import GestureControl from '@/components/GestureControl';
 import PageTransition from '@/components/PageTransition';
 import './globals.css';
 
-const jetbrainsMono = JetBrains_Mono({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
+  variable: '--font-geist-mono',
 });
 
 export const metadata: Metadata = {
@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${jetbrainsMono.variable} font-mono antialiased`}>
+      <body className={`${geistMono.variable} font-mono antialiased`}>
         <FontSizeEffect />
         <PageTransition>{children}</PageTransition>
         <FloatingControls />

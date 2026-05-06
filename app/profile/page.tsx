@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Btn from '@/components/Btn';
 import Flag from '@/components/Flag';
+import PageTipBanner from '@/components/PageTipBanner';
 import { COUNTRIES_ACCESS, PROFILE_SLIDES } from '@/lib/data';
 import { usePassageStore } from '@/lib/store';
 import { AMP_CATEGORIES, categoryScore, computeAmpScore, getTier, TIER_META } from '@/lib/amp';
@@ -51,6 +52,13 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen pb-20 text-sm leading-[1.55]">
+      <PageTipBanner
+        storageKey="profile"
+        eyebrow="Profile"
+        title="AI mobility profile"
+        detail="Review your passport context, AMP score, travel preferences, and accessibility settings."
+      />
+
       <div className="mx-auto max-w-[720px] px-6 py-7">
         {user && (
           <div className="mb-7 flex items-center gap-3.5 border-b border-ghost py-3.5">

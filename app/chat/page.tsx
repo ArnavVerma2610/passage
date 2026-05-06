@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PageTipBanner from '@/components/PageTipBanner';
 import { usePassageStore } from '@/lib/store';
 
 const STEPS: ReadonlyArray<readonly [string, string]> = [
@@ -28,13 +29,12 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen pb-20 text-sm">
-      <div className="border-b border-ghost px-6 pb-5 pt-6">
-        <div className="mb-1 text-[0.5625rem] uppercase tracking-[0.18em] text-faint">Chat</div>
-        <div className="text-base text-fg">Group matching</div>
-        <div className="mt-1 text-[0.6875rem] text-faint">
-          Find travelers attempting the same crossing from a different passport
-        </div>
-      </div>
+      <PageTipBanner
+        storageKey="chat"
+        eyebrow="Chat"
+        title="Group matching"
+        detail="Find travelers attempting the same crossing from a different passport"
+      />
 
       <div className="max-w-[560px] px-6 py-10">
         <div className="mb-8">

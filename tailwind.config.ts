@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        mono: ['var(--font-jetbrains-mono)', 'monospace'],
+        mono: ['var(--font-geist-mono)', 'monospace'],
       },
       colors: {
         bg: 'var(--c-bg)',

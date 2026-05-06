@@ -163,11 +163,7 @@ export default function FloatingControls() {
   return (
     <div
       ref={wrapRef}
-      className="fixed z-[200] flex flex-col items-end gap-2 font-mono"
-      style={{
-        right: 'calc(16px + var(--safe-right))',
-        bottom: 'calc(16px + var(--safe-bottom))',
-      }}
+      className="fixed bottom-[calc(64px+var(--safe-bottom))] left-1/2 z-[220] flex -translate-x-1/2 flex-col items-center gap-2 font-mono md:bottom-[calc(16px+var(--safe-bottom))] md:left-auto md:right-[calc(16px+var(--safe-right))] md:translate-x-0 md:items-end"
     >
       {textOpen && (
         <div
